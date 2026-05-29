@@ -25,17 +25,17 @@ data class LootItem(
 )
 
 enum class MobType {
-    SCRIBBLE_SPIDER,     // Level 1 Sandbox
-    BROKEN_CRANE,         // Level 1 Sandbox
-    SPELLING_BEE,        // Level 2 School
-    FRACTURED_RULER,     // Level 2 School
-    LATE_ALARM,          // Level 2 School
-    CLOSET_SHADOW,       // Level 3 Attic
-    JACK_IN_THE_BOX,     // Level 3 Attic
-    DUST_BUNNY_BEHEMOTH, // Level 3 Attic
-    DRILL_TEDDY,         // Level 4 Clinic
-    LOLLIPOP_MIMIC,      // Level 4 Clinic
-    TOOTH_COLLECTOR      // Level 4 Boss or Clinic
+    HALLWAY_TRIPPER,
+    LUNCH_MONEY_THIEF,
+    LOCKER_SHOVER,
+    CAFETERIA_CUTTER,
+    CHALK_FLINGER,
+    CYBER_TAUNTER,
+    DESK_SLAMMER,
+    GYM_CLASS_TYRANT,
+    CORRIDOR_BLOCKER,
+    JUICE_STALKER,
+    CHAD_THE_OVERLORD
 }
 
 data class MobInstance(

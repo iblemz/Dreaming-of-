@@ -53,12 +53,12 @@ fun CombatScreen(
         }
     }
 
-    // Dynamic warning background depending on intensity
+    // Elegant Dark combat slate background
     val combatBg = Brush.verticalGradient(
         colors = listOf(
-            Color(0xFF1E030B),
-            Color(0xFF030105),
-            Color(0xFF0C0212)
+            MaterialTheme.colorScheme.background,
+            Color(0xFF15191E),
+            MaterialTheme.colorScheme.background
         )
     )
 
@@ -76,7 +76,7 @@ fun CombatScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                "⚠️ ANXIETY MANIFESTATION ⚠️",
+                "⚠️ BULLY CONFRONTATION ⚠️",
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold,

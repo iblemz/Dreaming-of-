@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -150,6 +151,14 @@ fun RetroViewport(
                         topLeft = Offset(b1.xL, b1.yT),
                         size = Size(b1.xR - b1.xL, b1.yB - b1.yT)
                     )
+                    // Draw brick textures
+                    drawFrontWallBricks(
+                        xL = b1.xL,
+                        xR = b1.xR,
+                        yT = b1.yT,
+                        yB = b1.yB,
+                        color = shadedOutline.copy(alpha = 0.4f)
+                    )
                     // Draw outline
                     drawRect(
                         color = shadedOutline,
@@ -169,6 +178,12 @@ fun RetroViewport(
                         color = shadedFloor,
                         outlineColor = shadedOutline
                     )
+                    // Draw Floor Tiles
+                    drawFloorCeilingTiles(
+                        xL1 = b1.xL, xR1 = b1.xR, y1 = b1.yB,
+                        xL2 = b2.xL, xR2 = b2.xR, y2 = b2.yB,
+                        color = shadedOutline.copy(alpha = 0.35f)
+                    )
 
                     // Draw Ceiling segment
                     drawPolygon(
@@ -180,6 +195,12 @@ fun RetroViewport(
                         ),
                         color = shadedCeiling,
                         outlineColor = shadedOutline
+                    )
+                    // Draw Ceiling Tiles
+                    drawFloorCeilingTiles(
+                        xL1 = b1.xL, xR1 = b1.xR, y1 = b1.yT,
+                        xL2 = b2.xL, xR2 = b2.xR, y2 = b2.yT,
+                        color = shadedOutline.copy(alpha = 0.3f)
                     )
 
                     // Draw Left Wall if solid
@@ -193,6 +214,12 @@ fun RetroViewport(
                             ),
                             color = shadedWall,
                             outlineColor = shadedOutline
+                        )
+                        // Perspective Left Wall brick textures
+                        drawPerspectiveWallBricks(
+                            x1 = b1.xL, yTop1 = b1.yT, yBot1 = b1.yB,
+                            x2 = b2.xL, yTop2 = b2.yT, yBot2 = b2.yB,
+                            color = shadedOutline.copy(alpha = 0.4f)
                         )
                     } else {
                         // Drawing side corridor opening back walls to make maze exploration cohesive
@@ -219,6 +246,12 @@ fun RetroViewport(
                             ),
                             color = shadedWall,
                             outlineColor = shadedOutline
+                        )
+                        // Perspective Right Wall brick textures
+                        drawPerspectiveWallBricks(
+                            x1 = b1.xR, yTop1 = b1.yT, yBot1 = b1.yB,
+                            x2 = b2.xR, yTop2 = b2.yT, yBot2 = b2.yB,
+                            color = shadedOutline.copy(alpha = 0.4f)
                         )
                     } else {
                         drawPolygon(
@@ -357,7 +390,20 @@ private fun DrawScope.drawPolygon(
     }
 }
 
-// Drawing chest boxes on canvas
+// Drawing realistic chest boxes on canvas
+private fun DrawScope.drawSparkleStar(cX: Float, cY: Float, size: Float, color: Color) {
+    if (size <= 0.1f) return
+    val path = Path().apply {
+        moveTo(cX, cY - size)
+        quadraticTo(cX, cY, cX + size, cY)
+        quadraticTo(cX, cY, cX, cY + size)
+        quadraticTo(cX, cY, cX - size, cY)
+        quadraticTo(cX, cY, cX, cY - size)
+        close()
+    }
+    drawPath(path = path, color = color, style = Fill)
+}
+
 private fun DrawScope.drawChest(
     cX: Float,
     cY: Float,
@@ -366,44 +412,193 @@ private fun DrawScope.drawChest(
     chest: ChestInstance,
     outlineColor: Color
 ) {
+    if (w < 4f || h < 4f) return
     val left = cX - w * 0.4f
-    val top = cY - h * 0.3f
+    val top = cY - h * 0.35f
     val rWidth = w * 0.8f
-    val rHeight = h * 0.6f
+    val rHeight = h * 0.7f
 
-    // Base body color - retro brown
-    val bodyColor = if (chest.isOpen) Color(0xFF6E473B) else Color(0xFF8B5A2B)
-    drawRect(
-        color = bodyColor,
-        topLeft = Offset(left, top),
-        size = Size(rWidth, rHeight)
-    )
+    if (!chest.isOpen) {
+        // --- CLOSED RETRO SCHOOL LOCKER ---
+        // Metallic door panel
+        drawRoundRect(
+            color = Color(0xFF607D8B), // Sleek Steel Blue Locker
+            topLeft = Offset(left, top),
+            size = Size(rWidth, rHeight),
+            cornerRadius = CornerRadius(8f, 8f),
+            style = Fill
+        )
+        
+        // Vent slots at the top (Realistic locker louvers)
+        val louverW = rWidth * 0.4f
+        val louverH = rHeight * 0.03f
+        val louverYStart = top + rHeight * 0.1f
+        for (i in 0..3) {
+            drawRoundRect(
+                color = Color(0xFF1B2A32), // Dark interior shadow
+                topLeft = Offset(cX - louverW / 2, louverYStart + i * (louverH * 2f)),
+                size = Size(louverW, louverH),
+                cornerRadius = CornerRadius(2f, 2f)
+            )
+        }
 
-    // Gold trim/accent
-    val trimColor = Color(0xFFFFD700)
-    // Draw lid border line
-    drawLine(
-        color = trimColor,
-        start = Offset(left, top + rHeight * 0.35f),
-        end = Offset(left + rWidth, top + rHeight * 0.35f),
-        strokeWidth = 3f
-    )
+        // Vent slots at the bottom (for symmetry)
+        val louverYStartBot = top + rHeight * 0.75f
+        for (i in 0..2) {
+            drawRoundRect(
+                color = Color(0xFF1B2A32),
+                topLeft = Offset(cX - louverW / 2, louverYStartBot + i * (louverH * 2f)),
+                size = Size(louverW, louverH),
+                cornerRadius = CornerRadius(2f, 2f)
+            )
+        }
 
-    // Center lock
-    val lockColor = if (chest.isOpen) Color.Gray else Color(0xFFFFD700)
-    drawRect(
-        color = lockColor,
-        topLeft = Offset(cX - w * 0.08f, top + rHeight * 0.25f),
-        size = Size(w * 0.16f, h * 0.18f)
-    )
+        // Locker Handle recessed cup well and lever
+        val handleW = rWidth * 0.16f
+        val handleH = rHeight * 0.22f
+        val handleX = left + rWidth * 0.18f
+        val handleY = top + rHeight * 0.38f
+        drawRoundRect(
+            color = Color(0xFF263238), // Recessed pocket
+            topLeft = Offset(handleX, handleY),
+            size = Size(handleW, handleH),
+            cornerRadius = CornerRadius(4f, 4f)
+        )
+        // Silver lever
+        drawRect(
+            color = Color(0xFFCFD8DC),
+            topLeft = Offset(handleX + handleW * 0.3f, handleY + handleH * 0.1f),
+            size = Size(handleW * 0.4f, handleH * 0.8f)
+        )
 
-    // Chest outline
-    drawRect(
-        color = outlineColor,
-        topLeft = Offset(left, top),
-        size = Size(rWidth, rHeight),
-        style = Stroke(width = 3f)
-    )
+        // Hanging combination lock pad! (Black circular lock with brass shackle)
+        val shackleRadius = handleW * 0.45f
+        val shackleCenterX = handleX + handleW * 0.5f
+        val shackleCenterY = handleY + handleH * 0.95f
+        
+        // Shackle loop
+        drawCircle(
+            color = Color(0xFFD4AF37), // Brass ring
+            radius = shackleRadius,
+            center = Offset(shackleCenterX, shackleCenterY),
+            style = Stroke(width = 3.5f)
+        )
+        // Padlock body
+        val lockBodyRadius = handleW * 0.65f
+        val lockBodyY = shackleCenterY + shackleRadius * 0.9f
+        drawCircle(
+            color = Color(0xFF212121), // Black body
+            radius = lockBodyRadius,
+            center = Offset(shackleCenterX, lockBodyY)
+        )
+        // Outer shiny silver ring on dial bezel
+        drawCircle(
+            color = Color(0xFFECEFF1),
+            radius = lockBodyRadius * 0.7f,
+            center = Offset(shackleCenterX, lockBodyY),
+            style = Stroke(width = 2f)
+        )
+        // Small dial knob
+        drawCircle(
+            color = Color(0xFF9E9E9E),
+            radius = lockBodyRadius * 0.25f,
+            center = Offset(shackleCenterX, lockBodyY)
+        )
+        // Tiny clock dial ticks
+        for (a in 0 until 8) {
+            val rads = Math.toRadians((a * 45).toDouble())
+            val tickX = shackleCenterX + cos(rads).toFloat() * lockBodyRadius * 0.5f
+            val tickY = lockBodyY + sin(rads).toFloat() * lockBodyRadius * 0.5f
+            drawCircle(
+                color = Color.White,
+                radius = 1.5f,
+                center = Offset(tickX, tickY)
+            )
+        }
+
+        // Outermost outline border
+        drawRoundRect(
+            color = outlineColor,
+            topLeft = Offset(left, top),
+            size = Size(rWidth, rHeight),
+            style = Stroke(width = 3f),
+            cornerRadius = CornerRadius(8f, 8f)
+        )
+    } else {
+        // --- OPEN SCHOOL LOCKER ---
+        // Dark interior background of locker interior
+        drawRoundRect(
+            color = Color(0xFF1E282C), // shadowed inside grey-slate
+            topLeft = Offset(left, top),
+            size = Size(rWidth, rHeight),
+            cornerRadius = CornerRadius(8f, 8f),
+            style = Fill
+        )
+        
+        // Inner shelves (two horizontal shelves inside locker)
+        val shelfH1 = top + rHeight * 0.32f
+        val shelfH2 = top + rHeight * 0.68f
+        drawLine(
+            color = Color(0xFF37474F),
+            start = Offset(left, shelfH1),
+            end = Offset(left + rWidth, shelfH1),
+            strokeWidth = 3f
+        )
+        drawLine(
+            color = Color(0xFF37474F),
+            start = Offset(left, shelfH2),
+            end = Offset(left + rWidth, shelfH2),
+            strokeWidth = 3f
+        )
+
+        // Stored school utilities on top shelf (colored binders, textbooks)
+        drawRect(
+            color = Color(0xFFD32F2F), // Red Binder
+            topLeft = Offset(left + rWidth * 0.15f, shelfH1 - rHeight * 0.2f),
+            size = Size(rWidth * 0.18f, rHeight * 0.18f)
+        )
+        drawRect(
+            color = Color(0xFF1E88E5), // Blue Textbook
+            topLeft = Offset(left + rWidth * 0.38f, shelfH1 - rHeight * 0.22f),
+            size = Size(rWidth * 0.15f, rHeight * 0.2f)
+        )
+
+        // Middle shelf: Golden confidence sparkles!
+        val starY = shelfH2 - rHeight * 0.18f
+        val pulseStarSize = rWidth * 0.15f
+        drawSparkleStar(cX, starY, pulseStarSize, Color(0xFFFFD700))
+        drawSparkleStar(left + rWidth * 0.25f, shelfH2 - rHeight * 0.28f, pulseStarSize * 0.6f, Color.White)
+        drawSparkleStar(left + rWidth * 0.72f, shelfH2 - rHeight * 0.24f, pulseStarSize * 0.7f, Color(0xFF00FFFF))
+
+        // Open Locker Door swung out to the right (perspective trapezoid)
+        val doorWidth = rWidth * 0.45f
+        val swingXStart = left + rWidth
+        val swingXEnd = swingXStart + doorWidth * cos(Math.toRadians(40.0)).toFloat()
+        val doorTopY1 = top
+        val doorTopY2 = top - rHeight * 0.08f
+        val doorBotY1 = top + rHeight
+        val doorBotY2 = top + rHeight + rHeight * 0.08f
+
+        val doorPath = Path().apply {
+            moveTo(swingXStart, doorTopY1)
+            lineTo(swingXEnd, doorTopY2)
+            lineTo(swingXEnd, doorBotY2)
+            lineTo(swingXStart, doorBotY1)
+            close()
+        }
+        // Swing door color (Steel Blue)
+        drawPath(path = doorPath, color = Color(0xFF78909C))
+        drawPath(path = doorPath, color = outlineColor, style = Stroke(width = 2.5f))
+
+        // Outermost outline border around the locker cabinet box
+        drawRoundRect(
+            color = outlineColor,
+            topLeft = Offset(left, top),
+            size = Size(rWidth, rHeight),
+            style = Stroke(width = 3f),
+            cornerRadius = CornerRadius(8f, 8f)
+        )
+    }
 }
 
 // Drawing customizable cute anxiety toy monsters using vector shapes!
@@ -430,333 +625,534 @@ private fun DrawScope.drawMob(
     val baseRadius = (w * 0.36f) * pulseAmount
 
     when (mob.type) {
-        MobType.SCRIBBLE_SPIDER -> {
-            // Draw spider legs
-            val legColor = Color(0xFF1E1E24)
-            for (i in -3..3) {
-                if (i != 0) {
-                    val angle = (i * 20f).toDouble()
-                    val start = Offset(finalX, finalY)
-                    val xDir = sin(Math.toRadians(angle)).toFloat()
-                    val yDir = cos(Math.toRadians(angle)).toFloat()
-                    drawLine(
-                        color = legColor,
-                        start = start,
-                        end = Offset(finalX + xDir * baseRadius * 1.5f, finalY + yDir * baseRadius * 0.9f),
-                        strokeWidth = 4f
+        MobType.HALLWAY_TRIPPER -> {
+            // Draw a student with a tilted snapback cap and an extended shoe trying to trip people
+            // Sideways cap
+            val capPath = Path().apply {
+                moveTo(finalX - baseRadius * 0.8f, finalY - baseRadius * 0.9f)
+                lineTo(finalX + baseRadius * 0.4f, finalY - baseRadius * 1.1f)
+                lineTo(finalX + baseRadius * 0.9f, finalY - baseRadius * 0.6f)
+                lineTo(finalX - baseRadius * 0.5f, finalY - baseRadius * 0.5f)
+                close()
+            }
+            drawPath(capPath, color = Color(0xFFE91E63)) // Hot Pink Cap
+
+            // Face
+            drawCircle(color = Color(0xFFFFCC99), radius = baseRadius * 0.65f, center = Offset(finalX, finalY - baseRadius * 0.1f))
+
+            // Sly winking eye and grin
+            drawCircle(color = Color(0xFF4CAF50), radius = 6f, center = Offset(finalX - baseRadius * 0.25f, finalY - baseRadius * 0.15f))
+            drawLine(color = Color.Black, start = Offset(finalX + baseRadius * 0.15f, finalY - baseRadius * 0.2f), end = Offset(finalX + baseRadius * 0.35f, finalY - baseRadius * 0.1f), strokeWidth = 3f)
+
+            // Smirk
+            val smilePath = Path().apply {
+                moveTo(finalX - baseRadius * 0.25f, finalY + baseRadius * 0.15f)
+                quadraticTo(finalX + baseRadius * 0.1f, finalY + baseRadius * 0.35f, finalX + baseRadius * 0.3f, finalY + baseRadius * 0.2f)
+            }
+            drawPath(smilePath, color = Color.Black, style = Stroke(width = 3.5f))
+
+            // Tripping Red sneaker sticking out!
+            val footX = finalX + baseRadius * 0.6f + (15f * sin(tickTime * 0.08).toFloat())
+            val footY = finalY + baseRadius * 0.7f
+            drawRoundRect(
+                color = Color(0xFFD32F2F), // Red sneaker
+                topLeft = Offset(footX, footY),
+                size = Size(baseRadius * 0.8f, baseRadius * 0.35f),
+                cornerRadius = CornerRadius(8f, 8f)
+            )
+            // Sneaker white sole
+            drawRect(
+                color = Color.White,
+                topLeft = Offset(footX, footY + baseRadius * 0.25f),
+                size = Size(baseRadius * 0.8f, baseRadius * 0.1f)
+            )
+        }
+
+        MobType.LUNCH_MONEY_THIEF -> {
+            // Sneaky dark hooded figure clutching a golden stolen coin
+            // Hood cowl
+            drawCircle(color = Color(0xFF263238), radius = baseRadius * 0.85f, center = Offset(finalX, finalY))
+            // Dark face shadow inner circle
+            drawCircle(color = Color(0xFF111111), radius = baseRadius * 0.55f, center = Offset(finalX, finalY))
+
+            // Glowing yellow eyes
+            drawCircle(color = Color.Yellow, radius = 7f, center = Offset(finalX - 12f, finalY - 6f))
+            drawCircle(color = Color.Yellow, radius = 7f, center = Offset(finalX + 12f, finalY - 6f))
+
+            // Messenger bag belt crossing chest
+            drawLine(color = Color(0xFF5D4037), start = Offset(finalX - baseRadius, finalY - baseRadius), end = Offset(finalX + baseRadius, finalY + baseRadius), strokeWidth = 5f)
+
+            // Stolen gold coin sparkles
+            val coinPulse = baseRadius * 0.3f
+            val coinX = finalX + baseRadius * 0.5f
+            val coinY = finalY + baseRadius * 0.4f
+            drawCircle(color = Color(0xFFFFD700), radius = coinPulse, center = Offset(coinX, coinY))
+            drawLine(color = Color.Black, start = Offset(coinX, coinY - 6f), end = Offset(coinX, coinY + 6f), strokeWidth = 3f)
+        }
+
+        MobType.LOCKER_SHOVER -> {
+            // Giant broad-shouldered rectangle block representing a locker-slamming bully
+            val bColor = Color(0xFFE65100) // Deep orange athletic uniform
+            // Shoulders
+            drawRect(
+                color = bColor,
+                topLeft = Offset(finalX - baseRadius * 1.1f, finalY - baseRadius * 0.2f),
+                size = Size(baseRadius * 2.2f, baseRadius * 1.1f)
+            )
+            // Head
+            drawCircle(color = Color(0xFFFDD835), radius = baseRadius * 0.45f, center = Offset(finalX, finalY - baseRadius * 0.45f))
+            // Tilted school locker on background
+            drawRect(
+                color = Color(0xFF78909C), // Slate locker
+                topLeft = Offset(finalX - baseRadius * 1.3f, finalY - baseRadius * 1.2f),
+                size = Size(baseRadius * 0.4f, baseRadius * 1.8f)
+            )
+            // Locker slits
+            drawLine(color = Color.Black, start = Offset(finalX - baseRadius * 1.25f, finalY - baseRadius * 0.9f), end = Offset(finalX - baseRadius * 1.15f, finalY - baseRadius * 0.9f), strokeWidth = 2f)
+            drawLine(color = Color.Black, start = Offset(finalX - baseRadius * 1.25f, finalY - baseRadius * 0.8f), end = Offset(finalX - baseRadius * 1.15f, finalY - baseRadius * 0.8f), strokeWidth = 2f)
+
+            // Red angry headband on student
+            drawLine(color = Color.Red, start = Offset(finalX - baseRadius * 0.4f, finalY - baseRadius * 0.65f), end = Offset(finalX + baseRadius * 0.4f, finalY - baseRadius * 0.65f), strokeWidth = 5f)
+        }
+
+        MobType.CAFETERIA_CUTTER -> {
+            // Student holding a food tray with malicious items
+            // Head and wild orange hair
+            drawCircle(color = Color(0xFFFF9800), radius = baseRadius * 0.65f, center = Offset(finalX, finalY - baseRadius * 0.2f))
+            drawCircle(color = Color(0xFFF57C00), radius = baseRadius * 0.35f, center = Offset(finalX, finalY - baseRadius * 0.75f))
+
+            // Round eyes of greedy anticipation
+            drawCircle(color = Color.White, radius = 9f, center = Offset(finalX - 14f, finalY - baseRadius * 0.25f))
+            drawCircle(color = Color.White, radius = 9f, center = Offset(finalX + 14f, finalY - baseRadius * 0.25f))
+            drawCircle(color = Color.Black, radius = 4f, center = Offset(finalX - 14f, finalY - baseRadius * 0.25f))
+            drawCircle(color = Color.Black, radius = 4f, center = Offset(finalX + 14f, finalY - baseRadius * 0.25f))
+
+            // Cafeteria tray in front of them
+            drawRoundRect(
+                color = Color(0xFF90A4AE), // Silver metal tray
+                topLeft = Offset(finalX - baseRadius * 0.9f, finalY + baseRadius * 0.2f),
+                size = Size(baseRadius * 1.8f, baseRadius * 0.45f),
+                cornerRadius = CornerRadius(6f, 6f)
+            )
+            // Green apple and milk box on the tray!
+            drawCircle(color = Color(0xFF4CAF50), radius = baseRadius * 0.15f, center = Offset(finalX - baseRadius * 0.4f, finalY + baseRadius * 0.35f))
+            drawRect(color = Color(0xFFE0E0E0), topLeft = Offset(finalX + baseRadius * 0.2f, finalY + baseRadius * 0.25f), size = Size(baseRadius * 0.25f, baseRadius * 0.25f))
+        }
+
+        MobType.CHALK_FLINGER -> {
+            // Kid drawing slingshot, surrounded by orbiting white chalk pieces
+            drawCircle(color = Color(0xFFFFDAB9), radius = baseRadius * 0.65f, center = Offset(finalX, finalY))
+            // Blue baseball uniform cap
+            val capPath = Path().apply {
+                moveTo(finalX - baseRadius * 0.7f, finalY - baseRadius * 0.4f)
+                lineTo(finalX, finalY - baseRadius * 0.9f)
+                lineTo(finalX + baseRadius * 0.7f, finalY - baseRadius * 0.4f)
+                close()
+            }
+            drawPath(capPath, color = Color(0xFF1E88E5))
+
+            // Slingshot frame held in hand
+            drawLine(color = Color(0xFF8D6E63), start = Offset(finalX - baseRadius * 0.4f, finalY + baseRadius * 0.2f), end = Offset(finalX - baseRadius * 0.4f, finalY + baseRadius * 0.7f), strokeWidth = 5f)
+            drawLine(color = Color(0xFF8D6E63), start = Offset(finalX - baseRadius * 0.6f, finalY + baseRadius * 0.2f), end = Offset(finalX - baseRadius * 0.2f, finalY + baseRadius * 0.2f), strokeWidth = 5f)
+
+            // Flying chalk shards floating around the head (orbit animation)
+            val orbitAngle = (tickTime / 100.0)
+            for (j in 0..2) {
+                val angleRad = orbitAngle + j * (2 * Math.PI / 3)
+                val chalkX = finalX + cos(angleRad).toFloat() * baseRadius * 1.3f
+                val chalkY = finalY + sin(angleRad).toFloat() * baseRadius * 1.3f
+                drawCircle(color = Color.White, radius = 5f, center = Offset(chalkX, chalkY))
+            }
+        }
+
+        MobType.CYBER_TAUNTER -> {
+            // Screen lighting up on a student’s face casting a glowing green/cyan reflection
+            // Back dark shadow hood
+            drawCircle(color = Color(0xFF37474F), radius = baseRadius * 0.75f, center = Offset(finalX, finalY - baseRadius * 0.1f))
+
+            // Face
+            drawCircle(color = Color(0xFFECEFF1), radius = baseRadius * 0.55f, center = Offset(finalX, finalY - baseRadius * 0.1f))
+
+            // Glowing blue smartphone in foreground
+            val phoneY = finalY + baseRadius * 0.4f
+            drawRect(
+                color = Color.Black,
+                topLeft = Offset(finalX - baseRadius * 0.25f, phoneY),
+                size = Size(baseRadius * 0.5f, baseRadius * 0.6f)
+            )
+            // Phone screen neon cyan glow
+            drawRect(
+                color = Color(0xFF00E676),
+                topLeft = Offset(finalX - baseRadius * 0.2f, phoneY + 5f),
+                size = Size(baseRadius * 0.4f, baseRadius * 0.45f)
+            )
+
+            // Upward neon cyan screen lighting beams casting over face
+            val lightPath = Path().apply {
+                moveTo(finalX - baseRadius * 0.2f, phoneY)
+                lineTo(finalX + baseRadius * 0.2f, phoneY)
+                lineTo(finalX + baseRadius * 0.45f, finalY - 10f)
+                lineTo(finalX - baseRadius * 0.45f, finalY - 10f)
+                close()
+            }
+            drawPath(lightPath, color = Color(0xFF00E676).copy(alpha = 0.22f))
+        }
+
+        MobType.DESK_SLAMMER -> {
+            // Angry brawler with a physical miniature desk in front of them that they slam
+            drawCircle(color = Color(0xFFD84315), radius = baseRadius * 0.8f, center = Offset(finalX, finalY)) // Orange-red anger face
+            // Screaming mouth
+            drawCircle(color = Color.Black, radius = baseRadius * 0.22f, center = Offset(finalX, finalY + baseRadius * 0.2f))
+
+            // Furious eyes
+            drawLine(color = Color.White, start = Offset(finalX - 22f, finalY - 15f), end = Offset(finalX - 6f, finalY - 5f), strokeWidth = 5f)
+            drawLine(color = Color.White, start = Offset(finalX + 22f, finalY - 15f), end = Offset(finalX + 6f, finalY - 5f), strokeWidth = 5f)
+
+            // Desk in front
+            drawRect(
+                color = Color(0xFF5D4037), // wood desk surface
+                topLeft = Offset(finalX - baseRadius * 1.1f, finalY + baseRadius * 0.3f),
+                size = Size(baseRadius * 2.2f, baseRadius * 0.5f)
+            )
+            // Desk legs
+            drawLine(color = Color.Black, start = Offset(finalX - baseRadius * 0.9f, finalY + baseRadius * 0.8f), end = Offset(finalX - baseRadius * 0.9f, finalY + baseRadius * 1.3f), strokeWidth = 6f)
+            drawLine(color = Color.Black, start = Offset(finalX + baseRadius * 0.9f, finalY + baseRadius * 0.8f), end = Offset(finalX + baseRadius * 0.9f, finalY + baseRadius * 1.3f), strokeWidth = 6f)
+        }
+
+        MobType.GYM_CLASS_TYRANT -> {
+            // Muscle jersey wearing student holding a shiny giant pulsating red dodgeball
+            drawCircle(color = Color(0xFFFFA726), radius = baseRadius * 0.72f, center = Offset(finalX, finalY))
+            // Red Sports headband
+            drawRect(
+                color = Color.Red,
+                topLeft = Offset(finalX - baseRadius * 0.65f, finalY - baseRadius * 0.55f),
+                size = Size(baseRadius * 1.3f, baseRadius * 0.2f)
+            )
+
+            // Glowing red angry eyes
+            drawCircle(color = Color.Red, radius = 5f, center = Offset(finalX - 14f, finalY - 10f))
+            drawCircle(color = Color.Red, radius = 5f, center = Offset(finalX + 14f, finalY - 10f))
+
+            // Beautiful pulsating high-velocity red dodgeball
+            val ballSize = baseRadius * 0.45f + (8f * sin(tickTime * 0.1).toFloat())
+            val ballX = finalX + baseRadius * 0.8f
+            val ballY = finalY + baseRadius * 0.3f
+            drawCircle(color = Color(0xFFC62828), radius = ballSize, center = Offset(ballX, ballY))
+            // Cross lines on dodgeball texture
+            drawLine(color = Color.White.copy(alpha = 0.5f), start = Offset(ballX - ballSize, ballY), end = Offset(ballX + ballSize, ballY), strokeWidth = 3f)
+            drawLine(color = Color.White.copy(alpha = 0.5f), start = Offset(ballX, ballY - ballSize), end = Offset(ballX, ballY + ballSize), strokeWidth = 3f)
+        }
+
+        MobType.CORRIDOR_BLOCKER -> {
+            // Giant brick wall guard standing broad with crossed arms
+            // Large gray jacket
+            drawRect(
+                color = Color(0xFF455A64),
+                topLeft = Offset(finalX - baseRadius * 1.2f, finalY - baseRadius * 0.2f),
+                size = Size(baseRadius * 2.4f, baseRadius * 1.3f)
+            )
+            // Big head with cap
+            drawCircle(color = Color(0xFFFFDAB9), radius = baseRadius * 0.5f, center = Offset(finalX, finalY - baseRadius * 0.4f))
+            drawRect(color = Color(0xFF263238), topLeft = Offset(finalX - baseRadius * 0.45f, finalY - baseRadius * 0.9f), size = Size(baseRadius * 0.9f, baseRadius * 0.3f))
+
+            // Yellow warning stripes across chest (crossed thick arms)
+            val armColor = Color(0xFFCFD8DC)
+            drawRoundRect(
+                color = armColor,
+                topLeft = Offset(finalX - baseRadius * 0.8f, finalY + baseRadius * 0.1f),
+                size = Size(baseRadius * 1.6f, baseRadius * 0.35f),
+                cornerRadius = CornerRadius(6f, 6f)
+            )
+            drawLine(color = Color.Black, start = Offset(finalX - baseRadius * 0.8f, finalY + baseRadius * 0.25f), end = Offset(finalX + baseRadius * 0.8f, finalY + baseRadius * 0.25f), strokeWidth = 3f)
+        }
+
+        MobType.JUICE_STALKER -> {
+            // A cute but evil green juice carton with teeth and a plastic drinking straw horn
+            // Green Box body
+            drawRect(
+                color = Color(0xFF81C784), // Light Green Juice Carton
+                topLeft = Offset(finalX - baseRadius * 0.7f, finalY - baseRadius * 0.9f),
+                size = Size(baseRadius * 1.4f, baseRadius * 1.7f)
+            )
+            // Orange splash design on carton
+            drawCircle(color = Color(0xFFFFB74D), radius = baseRadius * 0.35f, center = Offset(finalX, finalY + baseRadius * 0.1f))
+
+            // Drinking straw horn sticking out of top-corner
+            val strawPath = Path().apply {
+                moveTo(finalX - baseRadius * 0.4f, finalY - baseRadius * 0.9f)
+                lineTo(finalX - baseRadius * 0.4f, finalY - baseRadius * 1.3f)
+                lineTo(finalX - baseRadius * 0.7f, finalY - baseRadius * 1.5f)
+            }
+            drawPath(strawPath, color = Color.White, style = Stroke(width = 8f))
+            drawPath(strawPath, color = Color.Red, style = Stroke(width = 8f, pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(5f,5f), 0f)))
+
+            // Angry face on juice box
+            drawCircle(color = Color.Red, radius = 5f, center = Offset(finalX - 12f, finalY - baseRadius * 0.3f))
+            drawCircle(color = Color.Red, radius = 5f, center = Offset(finalX + 12f, finalY - baseRadius * 0.3f))
+            // Jagged teeth smile
+            drawLine(color = Color.Black, start = Offset(finalX - baseRadius * 0.3f, finalY - baseRadius * 0.1f), end = Offset(finalX + baseRadius * 0.3f, finalY - baseRadius * 0.1f), strokeWidth = 3f)
+        }
+
+        MobType.CHAD_THE_OVERLORD -> {
+            // The ultimate school brawler Chad! Massive crimson varsity jacket, golden crown, gold dollar chain and glowing double row grin
+            // Giant red/golden varsity jacket
+            drawCircle(color = Color(0xFFFF1744), radius = baseRadius * 1.2f, center = Offset(finalX, finalY + baseRadius * 0.2f))
+
+            // Royal golden letters/borders on jacket
+            drawCircle(color = Color(0xFFFFD700), radius = baseRadius * 1.2f, center = Offset(finalX, finalY + baseRadius * 0.2f), style = Stroke(width = 6f))
+
+            // Head and gold crown
+            drawCircle(color = Color(0xFFFFCC99), radius = baseRadius * 0.65f, center = Offset(finalX, finalY - baseRadius * 0.25f))
+
+            // Royal Golden Crown on top of head!
+            val crownPath = Path().apply {
+                moveTo(finalX - baseRadius * 0.5f, finalY - baseRadius * 0.8f) // left
+                lineTo(finalX - baseRadius * 0.4f, finalY - baseRadius * 1.2f) // left spike
+                lineTo(finalX - baseRadius * 0.2f, finalY - baseRadius * 0.9f) // vale L
+                lineTo(finalX, finalY - baseRadius * 1.4f)                     // central peak
+                lineTo(finalX + baseRadius * 0.2f, finalY - baseRadius * 0.9f) // vale R
+                lineTo(finalX + baseRadius * 0.4f, finalY - baseRadius * 1.2f) // right spike
+                lineTo(finalX + baseRadius * 0.5f, finalY - baseRadius * 0.8f) // right
+                close()
+            }
+            drawPath(crownPath, color = Color(0xFFFFD700))
+
+            // Glowing blue sunglasses
+            drawRoundRect(
+                color = Color(0xFF00E5FF), // Royal cyan mirror glasses
+                topLeft = Offset(finalX - baseRadius * 0.45f, finalY - baseRadius * 0.38f),
+                size = Size(baseRadius * 0.9f, baseRadius * 0.22f),
+                cornerRadius = CornerRadius(4f, 4f)
+            )
+            drawLine(color = Color.Black, start = Offset(finalX - baseRadius * 0.45f, finalY - baseRadius * 0.27f), end = Offset(finalX + baseRadius * 0.45f, finalY - baseRadius * 0.27f), strokeWidth = 3f)
+
+            // Heavy golden chain medalion under chin!
+            val chainY = finalY + baseRadius * 0.35f
+            for (offset in -2..2) {
+                drawCircle(color = Color(0xFFFFD700), radius = 8f, center = Offset(finalX + offset * 14f, chainY), style = Stroke(width = 2.5f))
+            }
+            drawCircle(color = Color(0xFFFFD700), radius = 15f, center = Offset(finalX, chainY + 12f))
+
+            // Double row of white grin teeth
+            val mouthWidth = baseRadius * 0.8f
+            val mouthHeight = baseRadius * 0.25f
+            val mouthY = finalY
+            drawRect(color = Color.Black, topLeft = Offset(finalX - mouthWidth / 2, mouthY - mouthHeight / 2), size = Size(mouthWidth, mouthHeight))
+            for (j in 0..5) {
+                val tX = finalX - mouthWidth / 2 + j * (mouthWidth / 5.5f)
+                drawLine(color = Color.White, start = Offset(tX, mouthY - mouthHeight / 2 + 2f), end = Offset(tX, mouthY + mouthHeight / 2 - 2f), strokeWidth = 4f)
+            }
+        }
+    }
+}
+
+// Custom 3D perspective wall brick texturing helper
+private fun DrawScope.drawFrontWallBricks(
+    xL: Float,
+    xR: Float,
+    yT: Float,
+    yB: Float,
+    color: Color
+) {
+    val rows = 5
+    val cols = 5
+    val h = yB - yT
+    val w = xR - xL
+    
+    // Draw horizontal grout lines
+    for (i in 1 until rows) {
+        val y = yT + (h * i / rows)
+        drawLine(
+            color = color,
+            start = Offset(xL, y),
+            end = Offset(xR, y),
+            strokeWidth = 2f
+        )
+    }
+    
+    // Draw vertical grout joints in running bond pattern
+    for (i in 0 until rows) {
+        val y1 = yT + (h * i / rows)
+        val y2 = yT + (h * (i + 1) / rows)
+        val shift = if (i % 2 == 0) 0f else 0.5f
+        for (j in 0..cols) {
+            val fraction = (j.toFloat() - 0.5f + shift) / cols
+            if (fraction in 0.01f..0.99f) {
+                val x = xL + (w * fraction)
+                drawLine(
+                    color = color,
+                    start = Offset(x, y1),
+                    end = Offset(x, y2),
+                    strokeWidth = 1.8f
+                )
+            }
+            
+            val cellFractionStart = (j.toFloat() - 1f + shift).coerceAtLeast(0f) / cols
+            val cellFractionEnd = (j.toFloat() + shift).coerceAtMost(cols.toFloat()) / cols
+            val cellCenterX = xL + w * (cellFractionStart + cellFractionEnd) / 2
+            val cellCenterY = (y1 + y2) / 2
+            
+            if ((i + j) % 3 == 0) {
+                drawCircle(
+                    color = color.copy(alpha = 0.25f),
+                    radius = ((y2 - y1) * 0.12f).coerceAtMost(6f),
+                    center = Offset(cellCenterX, cellCenterY)
+                )
+            }
+        }
+    }
+    
+    // Draw a dark school wood/rubber baseboard at the bottom of front wall
+    val baseboardHeight = (yB - yT) * 0.08f
+    drawRect(
+        color = Color(0xFF3E2723), // Dark brown school hallway baseboard
+        topLeft = Offset(xL, yB - baseboardHeight),
+        size = Size(w, baseboardHeight)
+    )
+    drawLine(
+        color = Color.Black,
+        start = Offset(xL, yB - baseboardHeight),
+        end = Offset(xR, yB - baseboardHeight),
+        strokeWidth = 1.5f
+    )
+}
+
+// Custom 3D perspective side wall brick texturing helper
+private fun DrawScope.drawPerspectiveWallBricks(
+    x1: Float,
+    yTop1: Float,
+    yBot1: Float,
+    x2: Float,
+    yTop2: Float,
+    yBot2: Float,
+    color: Color
+) {
+    val rows = 5
+    // Perspective horizontal curves (straight line rows in 3D projection)
+    for (i in 1 until rows) {
+        val t = i.toFloat() / rows
+        val yStart = yTop1 + (yBot1 - yTop1) * t
+        val yEnd = yTop2 + (yBot2 - yTop2) * t
+        drawLine(
+            color = color,
+            start = Offset(x1, yStart),
+            end = Offset(x2, yEnd),
+            strokeWidth = 2f
+        )
+    }
+    
+    // Perspective vertical running-bond joints
+    val cols = 4
+    for (i in 0 until rows) {
+        val t1 = i.toFloat() / rows
+        val t2 = (i + 1).toFloat() / rows
+        val shift = if (i % 2 == 0) 0f else 0.5f
+        for (j in 1..cols) {
+            val u = (j.toFloat() - 0.5f + shift) / (cols + 0.5f)
+            if (u in 0.01f..0.99f) {
+                val xVal = x1 + (x2 - x1) * u
+                val yTopVal = yTop1 + (yTop2 - yTop1) * u
+                val yBotVal = yBot1 + (yBot2 - yBot1) * u
+                
+                val yStart = yTopVal + (yBotVal - yTopVal) * t1
+                val yEnd = yTopVal + (yBotVal - yTopVal) * t2
+                
+                drawLine(
+                    color = color,
+                    start = Offset(xVal, yStart),
+                    end = Offset(xVal, yEnd),
+                    strokeWidth = 1.8f
+                )
+
+                if ((i + j) % 3 == 1) {
+                    val midY = (yStart + yEnd) / 2
+                    drawCircle(
+                        color = color.copy(alpha = 0.22f),
+                        radius = 3f,
+                        center = Offset(xVal, midY)
                     )
                 }
             }
-            // Spider body
-            drawCircle(
-                color = Color(0xFFD32F2F), // Scribble spider red
-                radius = baseRadius * 0.7f,
-                center = Offset(finalX, finalY)
-            )
-            // Tiny purple scribble eyes
-            drawCircle(color = Color(0xFFEE82EE), radius = baseRadius * 0.12f, center = Offset(finalX - 10f, finalY - 5f))
-            drawCircle(color = Color(0xFFEE82EE), radius = baseRadius * 0.12f, center = Offset(finalX + 10f, finalY - 5f))
         }
+    }
 
-        MobType.BROKEN_CRANE -> {
-            // Draw a blocky stack, wooden block structure (ruined playground)
-            val blockColor = Color(0xFFF4A460) // Sand-brown wooden block
-            drawRect(
-                color = blockColor,
-                topLeft = Offset(finalX - baseRadius, finalY - baseRadius * 0.8f),
-                size = Size(baseRadius * 2f, baseRadius * 1.6f)
-            )
-            // Yellow crane arm swinging
-            val armSweep = 30f * sin((tickTime / 160f).toDouble()).toFloat()
-            val rads = Math.toRadians(armSweep.toDouble())
-            val armEndX = finalX + cos(rads).toFloat() * baseRadius * 1.5f
-            val armEndY = finalY - baseRadius - sin(rads).toFloat() * baseRadius * 1.5f
-            drawLine(
-                color = Color(0xFFFFD700),
-                start = Offset(finalX, finalY - baseRadius * 0.6f),
-                end = Offset(armEndX, armEndY),
-                strokeWidth = 8f
-            )
-            // Draw tiny pixelated glowing red eye
-            drawRect(
-                color = Color.Red,
-                topLeft = Offset(finalX - 5f, finalY - 8f),
-                size = Size(10f, 10f)
-            )
+    // Perspective baseboard at the bottom of side wall
+    val bbT = 0.08f // baseboard height percentage
+    val yBB1 = yBot1 - (yBot1 - yTop1) * bbT
+    val yBB2 = yBot2 - (yBot2 - yTop2) * bbT
+    val baseboardPath = Path().apply {
+        moveTo(x1, yBot1)
+        lineTo(x2, yBot2)
+        lineTo(x2, yBB2)
+        lineTo(x1, yBB1)
+        close()
+    }
+    drawPath(
+        path = baseboardPath,
+        color = Color(0xFF3E2723) // Rich baseboard brown
+    )
+    drawLine(
+        color = Color.Black,
+        start = Offset(x1, yBB1),
+        end = Offset(x2, yBB2),
+        strokeWidth = 1.5f
+    )
+}
+
+// Custom 3D perspective floor/ceiling pavement tile helper
+private fun DrawScope.drawFloorCeilingTiles(
+    xL1: Float, xR1: Float, y1: Float,
+    xL2: Float, xR2: Float, y2: Float,
+    color: Color
+) {
+    val rows = 6
+    for (i in 1 until rows) {
+        val t = i.toFloat() / rows
+        val yVal = y1 + (y2 - y1) * t
+        val xLVal = xL1 + (xL2 - xL1) * t
+        val xRVal = xR1 + (xR2 - xR1) * t
+        
+        drawLine(
+            color = color,
+            start = Offset(xLVal, yVal),
+            end = Offset(xRVal, yVal),
+            strokeWidth = 2f
+        )
+    }
+    
+    val cols = 5
+    for (j in 1 until cols) {
+        val u = j.toFloat() / cols
+        val startX = xL1 + (xR1 - xL1) * u
+        val endX = xL2 + (xR2 - xL2) * u
+        
+        drawLine(
+            color = color,
+            start = Offset(startX, y1),
+            end = Offset(endX, y2),
+            strokeWidth = 2f
+        )
+    }
+
+    val dotsCount = 18
+    for (idx in 0 until dotsCount) {
+        val t = (idx * 0.05f) + 0.05f
+        val u = ((idx * 17) % 100) / 100f
+        
+        val yScatter = y1 + (y2 - y1) * t
+        val xLVal = xL1 + (xL2 - xL1) * t
+        val xRVal = xR1 + (xR2 - xR1) * t
+        val xScatter = xLVal + (xRVal - xLVal) * u
+        
+        val dotColor = when (idx % 3) {
+            0 -> Color(0xFFB0BEC5).copy(alpha = 0.4f)
+            1 -> Color(0xFFFFD54F).copy(alpha = 0.35f)
+            else -> Color.White.copy(alpha = 0.5f)
         }
-
-        MobType.SPELLING_BEE -> {
-            // Draw Orthodontist Spelling Bee
-            // Striped yellow-black body
-            val stripes = 4
-            val stripHeight = (baseRadius * 1.4f) / stripes
-            val bodyLeft = finalX - baseRadius * 0.9f
-            val bodyTop = finalY - baseRadius * 0.7f
-            
-            for (i in 0 until stripes) {
-                drawRect(
-                    color = if (i % 2 == 0) Color(0xFFFFD700) else Color(0xFF111111),
-                    topLeft = Offset(bodyLeft, bodyTop + i * stripHeight),
-                    size = Size(baseRadius * 1.8f, stripHeight)
-                )
-            }
-            // Cute paper wings
-            val wingAngle = 25f * sin((tickTime * 0.05).toDouble()).toFloat()
-            val wRadsL = Math.toRadians((-135f + wingAngle).toDouble())
-            val wRadsR = Math.toRadians((-45f - wingAngle).toDouble())
-
-            drawLine(
-                color = Color.White.copy(alpha = 0.7f),
-                start = Offset(finalX, bodyTop),
-                end = Offset(finalX + cos(wRadsL).toFloat() * baseRadius * 1.2f, bodyTop + sin(wRadsL).toFloat() * baseRadius * 1.2f),
-                strokeWidth = 5f
-            )
-            drawLine(
-                color = Color.White.copy(alpha = 0.7f),
-                start = Offset(finalX, bodyTop),
-                end = Offset(finalX + cos(wRadsR).toFloat() * baseRadius * 1.2f, bodyTop + sin(wRadsR).toFloat() * baseRadius * 1.2f),
-                strokeWidth = 5f
-            )
-
-            // Giant silver dental retainers brace!
-            drawLine(
-                color = Color(0xFFCCCCCC),
-                start = Offset(finalX - baseRadius * 0.7f, finalY + baseRadius * 0.2f),
-                end = Offset(finalX + baseRadius * 0.7f, finalY + baseRadius * 0.2f),
-                strokeWidth = 4f
-            )
-            // Glowing cyan eyes
-            drawCircle(color = Color(0xFF00FFFF), radius = 6f, center = Offset(finalX - 12f, finalY - 14f))
-            drawCircle(color = Color(0xFF00FFFF), radius = 6f, center = Offset(finalX + 12f, finalY - 14f))
-        }
-
-        MobType.FRACTURED_RULER -> {
-            // High school anxiety - green ruler segment
-            val path = Path().apply {
-                moveTo(finalX - baseRadius * 0.4f, finalY - baseRadius * 1.6f)
-                lineTo(finalX + baseRadius * 0.4f, finalY - baseRadius * 1.2f)
-                lineTo(finalX + baseRadius * 0.1f, finalY + baseRadius * 1.4f)
-                lineTo(finalX - baseRadius * 0.6f, finalY + baseRadius * 1.1f)
-                close()
-            }
-            drawPath(path, color = Color(0xFF4CAF50))
-            // Fractured zigzag cracks
-            drawLine(
-                color = Color.Red,
-                start = Offset(finalX - baseRadius * 0.1f, finalY - baseRadius * 0.2f),
-                end = Offset(finalX + baseRadius * 0.2f, finalY + baseRadius * 0.3f),
-                strokeWidth = 3f
-            )
-            // Yellow dots on teeth
-            drawCircle(color = Color.Yellow, radius = 5f, center = Offset(finalX - 5f, finalY - 25f))
-            drawCircle(color = Color.Yellow, radius = 5f, center = Offset(finalX + 5f, finalY - 21f))
-        }
-
-        MobType.LATE_ALARM -> {
-            // Alarm clock ringing - vibrates vigorously
-            val shakeScale = 8f * sin((tickTime / 30.0)).toFloat()
-            val clockX = finalX + shakeScale
-
-            // Draw clock bell ears
-            drawCircle(color = Color(0xFFB22222), radius = baseRadius * 0.35f, center = Offset(clockX - baseRadius * 0.7f, finalY - baseRadius * 0.7f))
-            drawCircle(color = Color(0xFFB22222), radius = baseRadius * 0.35f, center = Offset(clockX + baseRadius * 0.7f, finalY - baseRadius * 0.7f))
-
-            // Main face
-            drawCircle(color = Color(0xFFFF6347), radius = baseRadius, center = Offset(clockX, finalY))
-            drawCircle(color = Color.White, radius = baseRadius * 0.75f, center = Offset(clockX, finalY))
-
-            // Red central panic clock hands
-            drawLine(color = Color.Black, start = Offset(clockX, finalY), end = Offset(clockX + baseRadius * 0.5f, finalY - baseRadius * 0.2f), strokeWidth = 5f)
-            drawLine(color = Color.Black, start = Offset(clockX, finalY), end = Offset(clockX - baseRadius * 0.1f, finalY + baseRadius * 0.4f), strokeWidth = 5f)
-
-            // Angry clock face eyebrows
-            drawLine(color = Color.Red, start = Offset(clockX - 16f, finalY - 14f), end = Offset(clockX - 4f, finalY - 6f), strokeWidth = 3f)
-            drawLine(color = Color.Red, start = Offset(clockX + 16f, finalY - 14f), end = Offset(clockX + 4f, finalY - 6f), strokeWidth = 3f)
-        }
-
-        MobType.CLOSET_SHADOW -> {
-            // Shadow creeper, purple dark aura
-            val points = 8
-            val path = Path()
-            for (i in 0 until points) {
-                val angle = (i * (360f / points)).toDouble()
-                val offsetDist = baseRadius * (1.1f + 0.25f * sin((tickTime / 100f) + i).toFloat())
-                val pX = finalX + cos(Math.toRadians(angle)).toFloat() * offsetDist
-                val pY = finalY + sin(Math.toRadians(angle)).toFloat() * offsetDist
-                if (i == 0) path.moveTo(pX, pY) else path.lineTo(pX, pY)
-            }
-            path.close()
-            drawPath(path, color = Color(0xFF1A112B)) // Shadow deep purple
-            // Glowing screaming yellow eyes
-            drawCircle(color = Color.Yellow, radius = baseRadius * 0.15f, center = Offset(finalX - 12f, finalY - 4f))
-            drawCircle(color = Color.Yellow, radius = baseRadius * 0.15f, center = Offset(finalX + 12f, finalY - 4f))
-            // Black slit pupil
-            drawCircle(color = Color.Black, radius = 2f, center = Offset(finalX - 12f, finalY - 4f))
-            drawCircle(color = Color.Black, radius = 2f, center = Offset(finalX + 12f, finalY - 4f))
-        }
-
-        MobType.JACK_IN_THE_BOX -> {
-            // Draw colorful toy box and popping spring clown head
-            // Box
-            drawRect(
-                color = Color(0xFF4169E1), // Royal blue box
-                topLeft = Offset(finalX - baseRadius * 0.7f, finalY + baseRadius * 0.1f),
-                size = Size(baseRadius * 1.4f, baseRadius * 0.9f)
-            )
-            // Yellow spiralled spring
-            val springCount = 5
-            val springStep = (baseRadius * 0.8f) / springCount
-            for (i in 0 until springCount) {
-                drawLine(
-                    color = Color.LightGray,
-                    start = Offset(finalX - baseRadius * 0.2f, finalY + baseRadius * 0.1f - i * springStep),
-                    end = Offset(finalX + baseRadius * 0.2f, finalY + baseRadius * 0.1f - (i + 1) * springStep),
-                    strokeWidth = 3f
-                )
-            }
-            // Clown head grinning
-            val headY = finalY + baseRadius * 0.1f - springCount * springStep
-            drawCircle(color = Color.White, radius = baseRadius * 0.45f, center = Offset(finalX, headY))
-            drawCircle(color = Color.Red, radius = 6f, center = Offset(finalX, headY + 2f)) // Red nose
-            // Green clown curly hair on sides
-            drawCircle(color = Color.Green, radius = 10f, center = Offset(finalX - baseRadius * 0.45f, headY - 4f))
-            drawCircle(color = Color.Green, radius = 10f, center = Offset(finalX + baseRadius * 0.45f, headY - 4f))
-            // Grinning black mouth
-            val mouthPath = Path().apply {
-                moveTo(finalX - 12f, headY + 10f)
-                quadraticTo(finalX, headY + 22f, finalX + 12f, headY + 10f)
-            }
-            drawPath(mouthPath, color = Color.Red, style = Stroke(width = 3f))
-        }
-
-        MobType.DUST_BUNNY_BEHEMOTH -> {
-            // Dust cloud with tentacles
-            val cloudRadius = baseRadius * 1.2f
-            drawCircle(color = Color(0xFF4A4B50), radius = cloudRadius, center = Offset(finalX, finalY))
-            drawCircle(color = Color(0xFF63646B), radius = cloudRadius * 0.72f, center = Offset(finalX - 16f, finalY - 10f))
-            // Scary red dot clusters for swarm eyes
-            drawCircle(color = Color.Red, radius = 4f, center = Offset(finalX - 10f, finalY - 6f))
-            drawCircle(color = Color.Red, radius = 4f, center = Offset(finalX - 5f, finalY - 14f))
-            drawCircle(color = Color.Red, radius = 4f, center = Offset(finalX + 8f, finalY - 8f))
-            drawCircle(color = Color.Red, radius = 4f, center = Offset(finalX, finalY + 4f))
-        }
-
-        MobType.DRILL_TEDDY -> {
-            // Teddy bear head with whirring silver dentist drill
-            // Bear rounded head
-            drawCircle(color = Color(0xFF8B5A2B), radius = baseRadius * 1.0f, center = Offset(finalX, finalY))
-            // Ears
-            drawCircle(color = Color(0xFF8B5A2B), radius = baseRadius * 0.35f, center = Offset(finalX - baseRadius * 0.8f, finalY - baseRadius * 0.8f))
-            drawCircle(color = Color(0xFF8B5A2B), radius = baseRadius * 0.35f, center = Offset(finalX + baseRadius * 0.8f, finalY - baseRadius * 0.8f))
-            drawCircle(color = Color(0xFFFFC0CB), radius = baseRadius * 0.15f, center = Offset(finalX - baseRadius * 0.8f, finalY - baseRadius * 0.8f))
-            drawCircle(color = Color(0xFFFFC0CB), radius = baseRadius * 0.15f, center = Offset(finalX + baseRadius * 0.8f, finalY - baseRadius * 0.8f))
-
-            // Corrupted button eyes list
-            drawCircle(color = Color.Black, radius = 8f, center = Offset(finalX - 15f, finalY - 10f))
-            drawLine(color = Color.Red, start = Offset(finalX - 21f, finalY - 16f), end = Offset(finalX - 9f, finalY - 4f), strokeWidth = 3f)
-            drawLine(color = Color.Red, start = Offset(finalX - 9f, finalY - 16f), end = Offset(finalX - 21f, finalY - 4f), strokeWidth = 3f)
-            
-            drawCircle(color = Color.Red, radius = 8f, center = Offset(finalX + 15f, finalY - 10f)) // glowing corrupted red button
-
-            // Snout and Whirring silver drill coming out of mouth!
-            drawCircle(color = Color(0xFFD2B48C), radius = baseRadius * 0.35f, center = Offset(finalX, finalY + baseRadius * 0.3f))
-            
-            // Drill bit
-            val drillSpinAngle = (tickTime * 1.5).toDouble()
-            val drillPath = Path().apply {
-                moveTo(finalX - 10f, finalY + baseRadius * 0.4f)
-                lineTo(finalX + 10f, finalY + baseRadius * 0.4f)
-                lineTo(finalX + sin(Math.toRadians(drillSpinAngle)).toFloat() * 2f, finalY + baseRadius * 1.4f)
-                close()
-            }
-            drawPath(drillPath, color = Color(0xFFB0C4DE))
-            // Spiral screw lines
-            for (j in 0..3) {
-                val yOffset = baseRadius * 0.4f + j * baseRadius * 0.25f
-                drawLine(
-                    color = Color.DarkGray,
-                    start = Offset(finalX - 8f + j * 2f, finalY + yOffset),
-                    end = Offset(finalX + 8f - j * 2f, finalY + yOffset + 5f),
-                    strokeWidth = 2.5f
-                )
-            }
-        }
-
-        MobType.LOLLIPOP_MIMIC -> {
-            // Sticky candy golem
-            drawCircle(color = Color(0xFFFF1493), radius = baseRadius, center = Offset(finalX, finalY)) // Hot pink swirl
-            // Swirl lines on lollipop
-            val swirlCount = 6
-            for (i in 0 until swirlCount) {
-                val sweep = (tickTime / 100.0) + (i * (360.0 / swirlCount))
-                val radStart = Math.toRadians(sweep)
-                val radEnd = Math.toRadians(sweep + 45)
-                drawLine(
-                    color = Color.White,
-                    start = Offset(finalX + cos(radStart).toFloat() * (baseRadius * 0.2f), finalY + sin(radStart).toFloat() * (baseRadius * 0.2f)),
-                    end = Offset(finalX + cos(radEnd).toFloat() * (baseRadius * 0.9f), finalY + sin(radEnd).toFloat() * (baseRadius * 0.9f)),
-                    strokeWidth = 4f
-                )
-            }
-            // Big sticky drooling mouth
-            val droolPath = Path().apply {
-                moveTo(finalX - baseRadius * 0.5f, finalY + baseRadius * 0.1f)
-                lineTo(finalX + baseRadius * 0.5f, finalY + baseRadius * 0.1f)
-                lineTo(finalX + baseRadius * 0.3f, finalY + baseRadius * 0.6f)
-                lineTo(finalX - baseRadius * 0.3f, finalY + baseRadius * 0.6f)
-                close()
-            }
-            drawPath(droolPath, color = Color(0xFF00FF00)) // Lime green sugar drool
-            // Evil yellow eyes
-            drawCircle(color = Color.Yellow, radius = 8f, center = Offset(finalX - 15f, finalY - 20f))
-            drawCircle(color = Color.Yellow, radius = 8f, center = Offset(finalX + 15f, finalY - 20f))
-        }
-
-        MobType.TOOTH_COLLECTOR -> {
-            // Boss - spooky creature holding giant keys and grin overflowing with white teeth-gems
-            // Giant black cloud silhouette with white crown
-            drawCircle(color = Color(0xFF0D0112), radius = baseRadius * 1.3f, center = Offset(finalX, finalY))
-            
-            // Giant white grin
-            val mouthWidth = baseRadius * 1.4f
-            val mouthHeight = baseRadius * 0.6f
-            val mouthY = finalY + baseRadius * 0.2f
-            
-            drawRect(
-                color = Color.Black,
-                topLeft = Offset(finalX - mouthWidth/2, mouthY - mouthHeight/2),
-                size = Size(mouthWidth, mouthHeight)
-            )
-
-            // Grid of individual white sharp jagged teeth
-            val teethCount = 8
-            val toothWidth = mouthWidth / teethCount
-            for (k in 0 until teethCount) {
-                // Top teeth
-                val toothPathT = Path().apply {
-                    moveTo(finalX - mouthWidth / 2 + k * toothWidth, mouthY - mouthHeight / 2)
-                    lineTo(finalX - mouthWidth / 2 + (k + 0.5f) * toothWidth, mouthY)
-                    lineTo(finalX - mouthWidth / 2 + (k + 1) * toothWidth, mouthY - mouthHeight / 2)
-                    close()
-                }
-                drawPath(toothPathT, color = Color.White)
-
-                // Bottom teeth
-                val toothPathB = Path().apply {
-                    moveTo(finalX - mouthWidth / 2 + k * toothWidth, mouthY + mouthHeight / 2)
-                    lineTo(finalX - mouthWidth / 2 + (k + 0.5f) * toothWidth, mouthY)
-                    lineTo(finalX - mouthWidth / 2 + (k + 1) * toothWidth, mouthY + mouthHeight / 2)
-                    close()
-                }
-                drawPath(toothPathB, color = Color.White)
-            }
-
-            // Big glowing blood-shot red pupil eyes
-            drawCircle(color = Color.Red, radius = 12f, center = Offset(finalX - 25f, finalY - 18f))
-            drawCircle(color = Color.White, radius = 3f, center = Offset(finalX - 23f, finalY - 20f))
-
-            drawCircle(color = Color.Red, radius = 12f, center = Offset(finalX + 25f, finalY - 18f))
-            drawCircle(color = Color.White, radius = 3f, center = Offset(finalX + 27f, finalY - 20f))
-        }
+        drawCircle(
+            color = dotColor,
+            radius = (1.5f + (idx % 3).toFloat()).coerceAtMost(4f),
+            center = Offset(xScatter, yScatter)
+        )
     }
 }

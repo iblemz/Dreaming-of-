@@ -68,7 +68,7 @@ fun TitleScreen(
             ) {
                 // Main Title Hero Header
                 Text(
-                    text = "🌟 DREAM 🌟",
+                    text = "🏫 CORRIDOR 🏫",
                     style = MaterialTheme.typography.displaySmall.copy(
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Bold,
@@ -90,7 +90,7 @@ fun TitleScreen(
                 )
 
                 Text(
-                    text = "Anxieties Lurk in the Toybox Nightmare",
+                    text = "Reach the Nurse's Office before being beaten up!",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontFamily = FontFamily.Monospace,
                         color = Color.LightGray
@@ -113,7 +113,7 @@ fun TitleScreen(
                     Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color.White)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        "FALL ASLEEP (NEW RUN)",
+                        "START RUN (NEW ESCAPE)",
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -135,7 +135,7 @@ fun TitleScreen(
                         Icon(Icons.Default.Home, contentDescription = null, tint = Color.White)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            "RESUME DREAM",
+                            "RESUME RUN",
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
@@ -159,7 +159,7 @@ fun TitleScreen(
                     Icon(Icons.Default.Refresh, contentDescription = null, tint = Color(0xFF00FFFF))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        "PAST AWAKENING LOGS",
+                        "PAST ESCAPE LOGS",
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Bold
                     )
@@ -167,7 +167,7 @@ fun TitleScreen(
 
                 Spacer(modifier = Modifier.height(48.dp))
 
-                // Child sleeping vector decoration
+                // Nurse's Office goal decoration
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
@@ -179,15 +179,15 @@ fun TitleScreen(
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Home, contentDescription = null, tint = Color(0xFFFFD700), modifier = Modifier.size(28.dp))
+                        Icon(Icons.Default.Home, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(28.dp))
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                "MEMENTO COLLECTED",
+                                "NURSE'S OFFICE",
                                 style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace, color = Color.Gray),
                             )
                             Text(
-                                "Morning Clock: Safe",
+                                "Floor 4 Goal: Secure",
                                 style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace, color = Color.White, fontWeight = FontWeight.Bold),
                             )
                         }

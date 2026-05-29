@@ -120,15 +120,15 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
             // Starter items
             inventory.clear()
-            inventory.add(LootItem("milk", "Warm Glass of Milk", ItemType.CONSUMABLE, Rarity.COMMON, effectDescription = "Restores 40 HP. Calms the spirit.", value = 5, count = 1))
+            inventory.add(LootItem("milk", "Chilled Fruit Juice", ItemType.CONSUMABLE, Rarity.COMMON, effectDescription = "Restores 40 HP. Calms school anxiety.", value = 5, count = 1))
             
-            equippedWeapon = LootItem("slingshot_toy", "Pebble Slingshot", ItemType.WEAPON, Rarity.COMMON, atkBonus = 4, effectDescription = "Hand-crafted from a tree branch.", value = 15)
-            equippedArmor = LootItem("pjs_starry", "Simple Onesie", ItemType.ARMOR, Rarity.COMMON, defBonus = 1, maxHpBonus = 0, effectDescription = "Familiar bedtime clothing.", value = 15)
+            equippedWeapon = LootItem("slingshot_toy", "Pencil Launcher", ItemType.WEAPON, Rarity.COMMON, atkBonus = 4, effectDescription = "Propels yellow standard pencils.", value = 15)
+            equippedArmor = LootItem("pjs_starry", "Comfy Denim Hoodie", ItemType.ARMOR, Rarity.COMMON, defBonus = 1, maxHpBonus = 0, effectDescription = "Provides a layer of schoolyard protection.", value = 15)
             equippedAccessory = null
 
             generateNewFloor(1)
             screenState = ScreenState.EXPLORATION
-            showToast("You fall into a deep, toy-filled dream...")
+            showToast("You set foot into the bustling school hallways...")
         }
     }
 
@@ -246,8 +246,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     fun startCombat(mob: MobInstance) {
         activeMob = mob
         combatLogs.clear()
-        combatLogs.add("A spooky ${mob.name} blocks your path!")
-        combatLogs.add("Your courage is tested! Defeat it to quieten the anxiety.")
+        combatLogs.add("The bully ${mob.name} blocks your path!")
+        combatLogs.add("Stay confident! Overcome them with defensive school tactics.")
         isPlayerTurn = true
         screenState = ScreenState.COMBAT
         combatSubMenu = "MAIN"
@@ -264,7 +264,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             dreamShards += shardReward
             playerXp += mob.rewardXp
 
-            gameMessage = "Anxiety Banished!\n\n+ ${mob.rewardXp} Courage XP\n+ $shardReward Dream Shards"
+            gameMessage = "Bully Overcome!\n\n+ ${mob.rewardXp} Resilience XP\n+ $shardReward Confidence Points"
             
             // Check level up
             val xpNeeded = playerLevel * 60
@@ -275,7 +275,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 playerHp = playerMaxHp
                 playerMaxDp += 5
                 playerDp = playerMaxDp
-                gameMessage += "\n🏆 Level Up! Level $playerLevel of morning courage reached!"
+                gameMessage += "\n🏆 Level Up! Level $playerLevel of schoolyard courage reached!"
             }
 
             // High nightmare increases chance of rare items dropping from combat!
@@ -292,7 +292,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             triggerAutoSave()
         } else {
             // Player lost combat/HP hit 0
-            triggerWakeUp("Overcome by Spellbound Fears")
+            triggerWakeUp("Beaten up by the bullies")
         }
     }
 
@@ -308,9 +308,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
                 activeMob?.let { mob ->
                     mob.hp = max(0, mob.hp - damage)
-                    combatLogs.add("⚔️ You strike with ${equippedWeapon?.name ?: "fists"} for $damage damage!${if (crit) " (CRITICAL HIT)" else ""}")
+                    combatLogs.add("⚔️ You strike using your ${equippedWeapon?.name ?: "fists"} for $damage damage!${if (crit) " (CRITICAL STRIKE)" else ""}")
                     if (mob.hp <= 0) {
-                        combatLogs.add("✨ The ${mob.name} burst into colorful starry bubbles!")
+                        combatLogs.add("✨ The ${mob.name} admitted defeat and ran away!")
                         viewModelScope.launch {
                             kotlinx.coroutines.delay(1000)
                             endCombat(win = true)
@@ -324,30 +324,30 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
             }
-            "SKILL_PROJECTILE" -> { // "Bubble Shield" (DP 5, heals 25)
+            "SKILL_PROJECTILE" -> { // "Strategic Deep Breath" (WP/DP 5, heals 25)
                 if (playerDp >= 5) {
                     playerDp -= 5
                     val healAmount = 25
                     playerHp = (playerHp + healAmount).coerceAtMost(playerTotalMaxHp())
-                    combatLogs.add("🫧 Bubble Shield: Created floating bubble armor! Healed $healAmount HP.")
+                    combatLogs.add("🧘 Core Mindfulness: Took a deep breath to compose yourself! Healed $healAmount HP.")
                     isPlayerTurn = false
                     viewModelScope.launch {
                         kotlinx.coroutines.delay(1200)
                         executeEnemyTurn()
                     }
                 } else {
-                    combatLogs.add("❌ Not enough Dream Power (DP)!")
+                    combatLogs.add("❌ Not enough Willpower (WP)!")
                 }
             }
-            "SKILL_STRIKE" -> { // "Flashlight Burst" (DP 8, deals 30 damage & blinds)
+            "SKILL_STRIKE" -> { // "Assertive Defense" (WP/DP 8, deals dmg)
                 if (playerDp >= 8) {
                     playerDp -= 8
                     activeMob?.let { mob ->
                         val dmg = 32 + playerLevel * 4
                         mob.hp = max(0, mob.hp - dmg)
-                        combatLogs.add("🔦 Flashlight Burst: Banished shadows! Dealt $dmg flash damage.")
+                        combatLogs.add("🗣️ Assertive Shout: Firmly defended your boundaries! Dealt $dmg confidence damage.")
                         if (mob.hp <= 0) {
-                            combatLogs.add("✨ The ${mob.name} vanished in the light!")
+                            combatLogs.add("✨ The ${mob.name} admitted defeat and backed off!")
                             viewModelScope.launch {
                                 kotlinx.coroutines.delay(1000)
                                 endCombat(win = true)
@@ -361,7 +361,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                         }
                     }
                 } else {
-                    combatLogs.add("❌ Not enough Dream Power (DP)!")
+                     combatLogs.add("❌ Not enough Willpower (WP)!")
                 }
             }
             "RUN" -> {
@@ -402,23 +402,23 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
         // Generate customized monster actions based on their theme!
         val actions = when (mob.type) {
-            MobType.SCRIBBLE_SPIDER -> "spins a sticky spelling-bee web"
-            MobType.BROKEN_CRANE -> "swings its heavy plastic claw at your toes"
-            MobType.SPELLING_BEE -> "stings you with a hard spelling riddle"
-            MobType.FRACTURED_RULER -> "slaps you with wooden dimensions"
-            MobType.LATE_ALARM -> "screeches deafening class alarms"
-            MobType.CLOSET_SHADOW -> "extends creeping dark tendrils towards you"
-            MobType.JACK_IN_THE_BOX -> "springs forth laughing maniacally"
-            MobType.DUST_BUNNY_BEHEMOTH -> "pounces heavily, showering static dust"
-            MobType.DRILL_TEDDY -> "whirs its loud dentist tool near your teeth"
-            MobType.LOLLIPOP_MIMIC -> "hurls sticky sugary rocks"
-            MobType.TOOTH_COLLECTOR -> "demands shiny teeth-keys, striking with pure dread"
+            MobType.HALLWAY_TRIPPER -> "tries to trip your feet in the hallway"
+            MobType.LUNCH_MONEY_THIEF -> "tries to snatch your snack/money coins"
+            MobType.LOCKER_SHOVER -> "shoves you hard against a row of lockers"
+            MobType.CAFETERIA_CUTTER -> "mocks you while cutting right in front of the line"
+            MobType.CHALK_FLINGER -> "shoots soggy spitballs and flings chalk pieces"
+            MobType.CYBER_TAUNTER -> "posts a sarcastic rumor about you on social chats"
+            MobType.DESK_SLAMMER -> "slams a desk and yells in your face"
+            MobType.GYM_CLASS_TYRANT -> "hurls a high-velocity red dodgeball at you"
+            MobType.CORRIDOR_BLOCKER -> "stands in the center, completely blocking the hallway"
+            MobType.JUICE_STALKER -> "steals your chilled juice pack from your backpack"
+            MobType.CHAD_THE_OVERLORD -> "taunts your self-esteem and swings a heavy school bag"
         }
 
-        combatLogs.add("👾 ${mob.name} $actions! Dealt $enemyDmg anxiety damage.")
+        combatLogs.add("👾 ${mob.name} $actions! Dealt $enemyDmg stress damage.")
 
         if (playerHp <= 0) {
-            combatLogs.add("😱 Everything goes dark! You wake up shivering...")
+            combatLogs.add("😱 You are cornered and get beaten up by the bullies...")
             viewModelScope.launch {
                 kotlinx.coroutines.delay(1800)
                 endCombat(win = false)
@@ -515,7 +515,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     fun openChest(chest: ChestInstance) {
         chest.isOpen = true
         addLootToInventory(chest.lootItem)
-        gameMessage = "🎁 Opened a dream chest!\n\nFound: ${chest.lootItem.name}\n${chest.lootItem.effectDescription}"
+        gameMessage = "🎁 Searched a lost locker!\n\nFound: ${chest.lootItem.name}\n${chest.lootItem.effectDescription}"
         levelChests.removeAll { it.x == chest.x && it.y == chest.y }
         triggerAutoSave()
     }
@@ -529,12 +529,12 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     fun descendStairs() {
         if (currentFloor >= 4) {
-            // Reached deep bottom, player is fully healed and wakes up safely with clear light!
-            triggerWakeUp("Saved by Morning Light (Beat the Nightmare!)")
+            // Reached deep bottom! Safely found the Nurse's Office!
+            triggerWakeUp("Reached the Nurse's Office Safely! (Defeated the Bullies)")
         } else {
             val nextF = currentFloor + 1
             generateNewFloor(nextF)
-            gameMessage = "You descend deeper into the dream world...\n\nNow entering Floor $nextF!"
+            gameMessage = "You escape the bullies' reach and head to the next floor...\n\nNow entering Floor $nextF Hallways!"
             triggerAutoSave()
         }
     }

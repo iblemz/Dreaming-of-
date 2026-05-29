@@ -1,6 +1,6 @@
 {
-  "name": "Dream Crawler",
-  "description": "Retro styled first-person dungeon crawler procedurally generated in a child's toy nightmare.",
+  "name": "Corridor Crawler",
+  "description": "Retro styled first-person hallway crawler where you must overcome schoolyard bullies to reach the safety of the nurse's office.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

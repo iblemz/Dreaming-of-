@@ -178,24 +178,24 @@ object DungeonGenerator {
         val lootPool = mutableListOf<LootItem>()
 
         if (rarity == Rarity.COMMON) {
-            lootPool.add(LootItem("milk", "Warm Glass of Milk", ItemType.CONSUMABLE, Rarity.COMMON, effectDescription = "Restores 40 HP. Calms the spirit.", value = 10, count = 1))
-            lootPool.add(LootItem("cookie", "Star Cookie", ItemType.CONSUMABLE, Rarity.COMMON, effectDescription = "Restores 15 DP (Dream Power).", value = 8, count = 1))
-            lootPool.add(LootItem("slingshot", "Slingshot of Courage", ItemType.WEAPON, Rarity.COMMON, atkBonus = 6, effectDescription = "Simple wooden slingshot.", value = 25))
-            lootPool.add(LootItem("onesie_blue", "Blue Starry Pajamas", ItemType.ARMOR, Rarity.COMMON, defBonus = 3, maxHpBonus = 10, effectDescription = "Soft sleepwear.", value = 25))
-            lootPool.add(LootItem("marble", "Lucky Red Marble", ItemType.ACCESSORY, Rarity.COMMON, atkBonus = 1, defBonus = 1, effectDescription = "Found in your pocket.", value = 15))
+            lootPool.add(LootItem("milk", "Chilled Fruit Juice", ItemType.CONSUMABLE, Rarity.COMMON, effectDescription = "Restores 40 HP. Calms school anxiety.", value = 10, count = 1))
+            lootPool.add(LootItem("cookie", "Energy Granola Bar", ItemType.CONSUMABLE, Rarity.COMMON, effectDescription = "Restores 15 WP (Willpower).", value = 8, count = 1))
+            lootPool.add(LootItem("slingshot", "Squeaky Dodgeball", ItemType.WEAPON, Rarity.COMMON, atkBonus = 6, effectDescription = "Perfect for standard defensive throws.", value = 25))
+            lootPool.add(LootItem("onesie_blue", "Comfy Hooded Sweatshirt", ItemType.ARMOR, Rarity.COMMON, defBonus = 3, maxHpBonus = 10, effectDescription = "Thick cotton layer against spitballs.", value = 25))
+            lootPool.add(LootItem("marble", "Lucky Red Eraser", ItemType.ACCESSORY, Rarity.COMMON, atkBonus = 1, defBonus = 1, effectDescription = "Grounded confidence eraser.", value = 15))
         } else if (rarity == Rarity.RARE) {
-            lootPool.add(LootItem("teddy_healing", "Comforting Teddy Bear", ItemType.CONSUMABLE, Rarity.RARE, effectDescription = "Restores 100 HP & cleanses 30% Nightmare.", value = 35, count = 1))
-            lootPool.add(LootItem("laser_gun", "Retro Laser Pistol", ItemType.WEAPON, Rarity.RARE, atkBonus = 15, effectDescription = "Beeps with neon cosmic lights.", value = 75))
-            lootPool.add(LootItem("sword_wooden", "Imaginary Hero's Sword", ItemType.WEAPON, Rarity.RARE, atkBonus = 18, effectDescription = "Glows with daytime courage.", value = 90))
-            lootPool.add(LootItem("dino_pjs", "Green T-Rex Onesie", ItemType.ARMOR, Rarity.RARE, defBonus = 8, maxHpBonus = 25, effectDescription = "Roar! Makes you feel tough.", value = 80))
-            lootPool.add(LootItem("flashlight", "Flashlight of Truth", ItemType.WEAPON, Rarity.RARE, atkBonus = 12, defBonus = 4, effectDescription = "Banishes closet monsters.", value = 70))
-            lootPool.add(LootItem("badge", "Super Kid Sheriff Badge", ItemType.ACCESSORY, Rarity.RARE, atkBonus = 3, defBonus = 3, effectDescription = "Shiny plastic yellow badge.", value = 50))
+            lootPool.add(LootItem("teddy_healing", "Encouraging Friendship Note", ItemType.CONSUMABLE, Rarity.RARE, effectDescription = "Restores 100 HP & wipes 30% Stress.", value = 35, count = 1))
+            lootPool.add(LootItem("laser_gun", "High-Beam Laser Pointer", ItemType.WEAPON, Rarity.RARE, atkBonus = 15, effectDescription = "Extremely bright; blinds and confuses.", value = 75))
+            lootPool.add(LootItem("sword_wooden", "Sturdy T-Square Ruler", ItemType.WEAPON, Rarity.RARE, atkBonus = 18, effectDescription = "Offers excellent reach and impact.", value = 90))
+            lootPool.add(LootItem("dino_pjs", "Padded Sports Windbreaker", ItemType.ARMOR, Rarity.RARE, defBonus = 8, maxHpBonus = 25, effectDescription = "Absorbs accidental corridor shoves.", value = 80))
+            lootPool.add(LootItem("flashlight", "Bright Reading Flashlight", ItemType.WEAPON, Rarity.RARE, atkBonus = 12, defBonus = 4, effectDescription = "Illuminates dark back-corridors.", value = 70))
+            lootPool.add(LootItem("badge", "Vocal Defender Badge", ItemType.ACCESSORY, Rarity.RARE, atkBonus = 3, defBonus = 3, effectDescription = "Boosts self-esteem and confidence.", value = 50))
         } else { // DREAMY
-            lootPool.add(LootItem("pills_sleep", "Dream Gateway Elixir", ItemType.CONSUMABLE, Rarity.DREAMY, effectDescription = "Heals full HP/DP & wipes all Nightmare.", value = 90, count = 1))
-            lootPool.add(LootItem("imaginary_friend", "Imaginary Friend's Shield", ItemType.ARMOR, Rarity.DREAMY, defBonus = 20, maxHpBonus = 60, effectDescription = "They are always right beside you.", value = 200))
-            lootPool.add(LootItem("cosmic_saber", "Cosmic Dream Sabre", ItemType.WEAPON, Rarity.DREAMY, atkBonus = 35, effectDescription = "Humming weapon forged in deep sleep.", value = 220))
-            lootPool.add(LootItem("super_cape", "Bed-Sheet Hero Cape", ItemType.ARMOR, Rarity.DREAMY, defBonus = 12, maxHpBonus = 40, effectDescription = "You feel completely invincible.", value = 160))
-            lootPool.add(LootItem("fairy_coin", "Dentist Tooth Fairy Coin", ItemType.ACCESSORY, Rarity.DREAMY, atkBonus = 6, defBonus = 6, maxHpBonus = 30, effectDescription = "Pure golden coin direct from dreams.", value = 150))
+            lootPool.add(LootItem("pills_sleep", "Official Nurse's Hall Pass", ItemType.CONSUMABLE, Rarity.DREAMY, effectDescription = "Heals full HP/WP & wipes all Stress.", value = 90, count = 1))
+            lootPool.add(LootItem("imaginary_friend", "Parental Permission Slip", ItemType.ARMOR, Rarity.DREAMY, defBonus = 20, maxHpBonus = 60, effectDescription = "Unlocks absolute corridor immunity.", value = 200))
+            lootPool.add(LootItem("cosmic_saber", "Golden Valedictorian Gavel", ItemType.WEAPON, Rarity.DREAMY, atkBonus = 32, effectDescription = "Wields the ultimate weight of logical debate.", value = 220))
+            lootPool.add(LootItem("super_cape", "School Spirit Varsity Jacket", ItemType.ARMOR, Rarity.DREAMY, defBonus = 12, maxHpBonus = 40, effectDescription = "You feel incredibly brave wearing this.", value = 160))
+            lootPool.add(LootItem("fairy_coin", "Perfect Attendance Medal", ItemType.ACCESSORY, Rarity.DREAMY, atkBonus = 6, defBonus = 6, maxHpBonus = 30, effectDescription = "Shines with the power of unblemished records.", value = 150))
         }
 
         return lootPool.random()
@@ -207,10 +207,10 @@ object DungeonGenerator {
             1 -> {
                 if (Random.nextBoolean()) {
                     val mHp = 25 + Random.nextInt(10)
-                    Hexad(MobType.SCRIBBLE_SPIDER, "Scribble Spider", mHp, mHp, 5, 20)
+                    Hexad(MobType.HALLWAY_TRIPPER, "Hallway Foot-Tripper", mHp, mHp, 5, 20)
                 } else {
                     val mHp = 35 + Random.nextInt(10)
-                    Hexad(MobType.BROKEN_CRANE, "Broken Sandbox Crane", mHp, mHp, 4, 25)
+                    Hexad(MobType.LUNCH_MONEY_THIEF, "Lunch Money Snatcher", mHp, mHp, 4, 25)
                 }
             }
             2 -> {
@@ -218,15 +218,15 @@ object DungeonGenerator {
                 when (rand) {
                     0 -> {
                         val mHp = 45 + Random.nextInt(10)
-                        Hexad(MobType.SPELLING_BEE, "Orthodontist Spelling Bee", mHp, mHp, 9, 35)
+                        Hexad(MobType.LOCKER_SHOVER, "Locker Shover Bully", mHp, mHp, 9, 35)
                     }
                     1 -> {
                         val mHp = 40 + Random.nextInt(12)
-                        Hexad(MobType.FRACTURED_RULER, "Fractured Ruler Mimic", mHp, mHp, 11, 40)
+                        Hexad(MobType.CAFETERIA_CUTTER, "Cafeteria Line Cutter", mHp, mHp, 11, 40)
                     }
                     else -> {
                         val mHp = 50 + Random.nextInt(10)
-                        Hexad(MobType.LATE_ALARM, "Class-Bell Late Alarm", mHp, mHp, 8, 45)
+                        Hexad(MobType.CHALK_FLINGER, "Soggy Spitball Shooter", mHp, mHp, 8, 45)
                     }
                 }
             }
@@ -235,15 +235,15 @@ object DungeonGenerator {
                 when (rand) {
                     0 -> {
                         val mHp = 65 + Random.nextInt(15)
-                        Hexad(MobType.CLOSET_SHADOW, "Closet Shadow Creeper", mHp, mHp, 15, 60)
+                        Hexad(MobType.CYBER_TAUNTER, "Sarcastic Senior Troll", mHp, mHp, 15, 60)
                     }
                     1 -> {
                         val mHp = 60 + Random.nextInt(10)
-                        Hexad(MobType.JACK_IN_THE_BOX, "Grinning Jack-in-the-Box", mHp, mHp, 18, 65)
+                        Hexad(MobType.DESK_SLAMMER, "Desk Slamming Agitator", mHp, mHp, 18, 65)
                     }
                     else -> {
                         val mHp = 80 + Random.nextInt(20)
-                        Hexad(MobType.DUST_BUNNY_BEHEMOTH, "Dust Bunny Behemoth", mHp, mHp, 13, 80)
+                        Hexad(MobType.GYM_CLASS_TYRANT, "Gym Class Dodgeball Tyrant", mHp, mHp, 13, 80)
                     }
                 }
             }
@@ -253,15 +253,15 @@ object DungeonGenerator {
                 when (rand) {
                     0 -> {
                         val mHp = 90 + Random.nextInt(20)
-                        Hexad(MobType.DRILL_TEDDY, "Dentist Drill Bear", mHp, mHp, 20, 100)
+                        Hexad(MobType.CORRIDOR_BLOCKER, "Hallway Corridor Blocker", mHp, mHp, 20, 100)
                     }
                     1 -> {
                         val mHp = 85 + Random.nextInt(15)
-                        Hexad(MobType.LOLLIPOP_MIMIC, "Sticky Lollipop Golem", mHp, mHp, 18, 110)
+                        Hexad(MobType.JUICE_STALKER, "Snobby Snack Thief", mHp, mHp, 18, 110)
                     }
                     else -> {
                         val mHp = 130 + Random.nextInt(30)
-                        Hexad(MobType.TOOTH_COLLECTOR, "Grinning Tooth Collector", mHp, mHp, 25, 150)
+                        Hexad(MobType.CHAD_THE_OVERLORD, "Chad the Bully King", mHp, mHp, 25, 150)
                     }
                 }
             }

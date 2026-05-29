@@ -29,19 +29,19 @@ fun RunSummaryScreen(
     modifier: Modifier = Modifier
 ) {
     val reason = viewModel.wakeUpReasonString
-    val isVictory = reason.contains("Saved by Morning Light")
+    val isVictory = reason.contains("Nurse's Office")
     val isAbnormal = reason.contains("Shocked Awake")
 
     val (headerText, accentColor) = when {
-        isVictory -> Pair("🌞 AWAKENED BY MORNING SUNLIGHT 🌞", Color(0xFFFFD700))
-        isAbnormal -> Pair("🚪 DISTURBED FROM BEDTIME", Color(0xFF00FFFF))
-        else -> Pair("😱 SHIVERING BOY WOKE UP SWEATING...", Color(0xFFFF0055))
+        isVictory -> Pair("🏥 REACHED THE NURSE'S OFFICE 🏥", Color(0xFF4CAF50))
+        isAbnormal -> Pair("🚪 ABANDONED CORRIDOR RUN", Color(0xFF00FFFF))
+        else -> Pair("😱 CORNERED & BEATEN UP BY BULLIES...", Color(0xFFFF0055))
     }
 
     val narrative = when {
-        isVictory -> "You conquered the peak anxieties of the child's mind! The spelling bees, closet shadows, and drilling dentist bears dissolve into pastel starry bubbles. A warm golden sun beam breaks through the bedroom window. The nursery is perfectly peaceful. You awake with a calm, happy heart."
-        isAbnormal -> "You pinched your fingers and woke yourself up abruptly! Breathing hard, you blink in the quiet darkness. The toy chest sits quietly at the corner, completely safe."
-        else -> "The corrupted anxieties overwhelmed your dream spirit! The shadows and toy monsters locked your dream door, and you woke up gasping for air, grabbing for parent's soft blanket in the shuddering darkness. Wipe your eyes; the bright morning will surely come tomorrow."
+        isVictory -> "You successfully stood up to the school bullies and negotiated all 4 floors to reach the safety of the Nurse's Office! Your resilience, confident boundaries, and healthy mind keep your self-esteem unshakable in the hallways."
+        isAbnormal -> "You exited your corridor escape run abruptly. Take a deep breath to recompose your mind for next time."
+        else -> "The school bullies cornered you and sapped all of your willpower! Do not worry; every day is a brand new chance to be resilient. With stronger boundaries and better strategy, you will push through to the Nurse's Office next time!"
     }
 
     val finalScore = (viewModel.currentFloor * 1000) + (viewModel.statsMobsDefeated * 250) + (viewModel.playerLevel * 300) + (viewModel.dreamShards * 10)
@@ -172,7 +172,7 @@ fun RunSummaryScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Dream Shards Collected", fontFamily = FontFamily.Monospace, color = Color.LightGray)
+                        Text("Confidence Points Gained", fontFamily = FontFamily.Monospace, color = Color.LightGray)
                         Text("${viewModel.dreamShards}", fontFamily = FontFamily.Monospace, color = Color(0xFFFFD700), fontWeight = FontWeight.Bold)
                     }
 

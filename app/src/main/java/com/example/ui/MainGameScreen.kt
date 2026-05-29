@@ -56,18 +56,18 @@ fun MainGameScreen(
         }
     }
 
-    val starrySky = Brush.verticalGradient(
+    val elegantDarkBg = Brush.verticalGradient(
         colors = listOf(
-            Color(0xFF07040C),
-            Color(0xFF0F0B1A),
-            Color(0xFF060309)
+            MaterialTheme.colorScheme.background,
+            Color(0xFF15191E),
+            MaterialTheme.colorScheme.background
         )
     )
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(starrySky)
+            .background(elegantDarkBg)
             .windowInsetsPadding(WindowInsets.safeDrawing)
     ) {
         Column(
@@ -92,7 +92,7 @@ fun MainGameScreen(
                         )
                     )
                     Text(
-                        text = "Level ${viewModel.playerLevel} Child",
+                        text = "Level ${viewModel.playerLevel} Student",
                         style = MaterialTheme.typography.bodySmall.copy(
                             color = Color.LightGray,
                             fontFamily = FontFamily.Monospace
@@ -114,7 +114,7 @@ fun MainGameScreen(
                             Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFD700), modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                "shards: ${viewModel.dreamShards}",
+                                "confidence: ${viewModel.dreamShards}",
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     color = Color.White,
                                     fontFamily = FontFamily.Monospace,
@@ -133,7 +133,7 @@ fun MainGameScreen(
                             .testTag("abandon_button"),
                         shape = RoundedCornerShape(4.dp)
                     ) {
-                        Text("PINCH AWAKE 👁️", fontFamily = FontFamily.Monospace, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                        Text("GIVE UP ESCAPE 🚪", fontFamily = FontFamily.Monospace, fontSize = 9.sp, fontWeight = FontWeight.Black)
                     }
                 }
             }
@@ -202,7 +202,7 @@ fun MainGameScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "NIGHTMARE INTENSITY",
+                        text = "SCHOOLYARD ANXIETY",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Bold,
@@ -374,7 +374,7 @@ fun MainGameScreen(
                             onClick = { viewModel.moveForward() },
                             modifier = Modifier
                                 .size(54.dp)
-                                .background(Color(0xFFFF69B4), CircleShape)
+                                .background(MaterialTheme.colorScheme.primary, CircleShape)
                                 .testTag("move_forward_button")
                         ) {
                             Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Move Forward", tint = Color.White, modifier = Modifier.size(28.dp))
@@ -515,8 +515,8 @@ fun InventoryOverlay(
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.5f))
             .padding(12.dp)
-            .border(2.dp, Color(0xFF6A5ACD), RoundedCornerShape(14.dp)),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF080312).copy(alpha = 0.98f))
+            .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(14.dp)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f))
     ) {
         Column(
             modifier = Modifier
@@ -531,7 +531,7 @@ fun InventoryOverlay(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "🎒 PAJAMA POCKETS",
+                    "🎒 SCHOOL BACKPACK",
                     style = MaterialTheme.typography.titleMedium.copy(
                         color = Color.White,
                         fontFamily = FontFamily.Monospace,
@@ -625,7 +625,7 @@ fun InventoryOverlay(
             // Close actions
             Button(
                 onClick = onClose,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A5ACD)),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
@@ -754,10 +754,10 @@ private fun getDynamicIntensityColor(intensity: Float): Color {
 
 private fun getIntensityDescription(intensity: Float): String {
     return when {
-        intensity < 0.15f -> "🌌 PEACEORBIT"
-        intensity < 0.35f -> "💭 WANING SLEEP"
-        intensity < 0.55f -> "📻 SHADOWY WORRIES"
-        intensity < 0.75f -> "🚨 DEEP COMPULSION"
-        else -> "😱 INFESTED NIGHTMARE!"
+        intensity < 0.15f -> "🟢 CALM CORRIDORS"
+        intensity < 0.35f -> "💭 MINOR SNICKERS"
+        intensity < 0.55f -> "📻 BULLY CLIQUE"
+        intensity < 0.75f -> "🚨 HIGH TENSION"
+        else -> "😱 CORNERED ANXIETY!"
     }
 }
