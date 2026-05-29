@@ -157,7 +157,10 @@ fun RetroViewport(
                         xR = b1.xR,
                         yT = b1.yT,
                         yB = b1.yB,
-                        color = shadedOutline.copy(alpha = 0.4f)
+                        color = shadedOutline.copy(alpha = 0.4f),
+                        cx = cx,
+                        cy = cy,
+                        shade = shade
                     )
                     // Draw outline
                     drawRect(
@@ -219,7 +222,9 @@ fun RetroViewport(
                         drawPerspectiveWallBricks(
                             x1 = b1.xL, yTop1 = b1.yT, yBot1 = b1.yB,
                             x2 = b2.xL, yTop2 = b2.yT, yBot2 = b2.yB,
-                            color = shadedOutline.copy(alpha = 0.4f)
+                            color = shadedOutline.copy(alpha = 0.4f),
+                            seedX = lx, seedY = ly,
+                            shade = shade
                         )
                     } else {
                         // Drawing side corridor opening back walls to make maze exploration cohesive
@@ -251,7 +256,9 @@ fun RetroViewport(
                         drawPerspectiveWallBricks(
                             x1 = b1.xR, yTop1 = b1.yT, yBot1 = b1.yB,
                             x2 = b2.xR, yTop2 = b2.yT, yBot2 = b2.yB,
-                            color = shadedOutline.copy(alpha = 0.4f)
+                            color = shadedOutline.copy(alpha = 0.4f),
+                            seedX = rx, seedY = ry,
+                            shade = shade
                         )
                     } else {
                         drawPolygon(
@@ -952,68 +959,18 @@ private fun DrawScope.drawFrontWallBricks(
     xR: Float,
     yT: Float,
     yB: Float,
-    color: Color
+    color: Color,
+    cx: Int,
+    cy: Int,
+    shade: Float
 ) {
-    val rows = 5
-    val cols = 5
-    val h = yB - yT
-    val w = xR - xL
-    
-    // Draw horizontal grout lines
-    for (i in 1 until rows) {
-        val y = yT + (h * i / rows)
-        drawLine(
-            color = color,
-            start = Offset(xL, y),
-            end = Offset(xR, y),
-            strokeWidth = 2f
-        )
-    }
-    
-    // Draw vertical grout joints in running bond pattern
-    for (i in 0 until rows) {
-        val y1 = yT + (h * i / rows)
-        val y2 = yT + (h * (i + 1) / rows)
-        val shift = if (i % 2 == 0) 0f else 0.5f
-        for (j in 0..cols) {
-            val fraction = (j.toFloat() - 0.5f + shift) / cols
-            if (fraction in 0.01f..0.99f) {
-                val x = xL + (w * fraction)
-                drawLine(
-                    color = color,
-                    start = Offset(x, y1),
-                    end = Offset(x, y2),
-                    strokeWidth = 1.8f
-                )
-            }
-            
-            val cellFractionStart = (j.toFloat() - 1f + shift).coerceAtLeast(0f) / cols
-            val cellFractionEnd = (j.toFloat() + shift).coerceAtMost(cols.toFloat()) / cols
-            val cellCenterX = xL + w * (cellFractionStart + cellFractionEnd) / 2
-            val cellCenterY = (y1 + y2) / 2
-            
-            if ((i + j) % 3 == 0) {
-                drawCircle(
-                    color = color.copy(alpha = 0.25f),
-                    radius = ((y2 - y1) * 0.12f).coerceAtMost(6f),
-                    center = Offset(cellCenterX, cellCenterY)
-                )
-            }
-        }
-    }
-    
-    // Draw a dark school wood/rubber baseboard at the bottom of front wall
-    val baseboardHeight = (yB - yT) * 0.08f
-    drawRect(
-        color = Color(0xFF3E2723), // Dark brown school hallway baseboard
-        topLeft = Offset(xL, yB - baseboardHeight),
-        size = Size(w, baseboardHeight)
-    )
-    drawLine(
-        color = Color.Black,
-        start = Offset(xL, yB - baseboardHeight),
-        end = Offset(xR, yB - baseboardHeight),
-        strokeWidth = 1.5f
+    drawProceduralSchoolWallPanel(
+        x1 = xL, yTop1 = yT, yBot1 = yB,
+        x2 = xR, yTop2 = yT, yBot2 = yB,
+        color = color,
+        seedX = cx,
+        seedY = cy,
+        shade = shade
     )
 }
 
@@ -1025,78 +982,576 @@ private fun DrawScope.drawPerspectiveWallBricks(
     x2: Float,
     yTop2: Float,
     yBot2: Float,
-    color: Color
+    color: Color,
+    seedX: Int,
+    seedY: Int,
+    shade: Float
 ) {
-    val rows = 5
-    // Perspective horizontal curves (straight line rows in 3D projection)
-    for (i in 1 until rows) {
-        val t = i.toFloat() / rows
-        val yStart = yTop1 + (yBot1 - yTop1) * t
-        val yEnd = yTop2 + (yBot2 - yTop2) * t
-        drawLine(
-            color = color,
-            start = Offset(x1, yStart),
-            end = Offset(x2, yEnd),
-            strokeWidth = 2f
-        )
+    drawProceduralSchoolWallPanel(
+        x1 = x1, yTop1 = yTop1, yBot1 = yBot1,
+        x2 = x2, yTop2 = yTop2, yBot2 = yBot2,
+        color = color,
+        seedX = seedX,
+        seedY = seedY,
+        shade = shade
+    )
+}
+
+// Unified first-person procedural school corridor wall decorator
+private fun DrawScope.drawProceduralSchoolWallPanel(
+    x1: Float, yTop1: Float, yBot1: Float,
+    x2: Float, yTop2: Float, yBot2: Float,
+    color: Color, // shadedOutline color
+    seedX: Int,
+    seedY: Int,
+    shade: Float
+) {
+    val h1 = yBot1 - yTop1
+    val h2 = yBot2 - yTop2
+    if (h1 < 2f || h2 < 2f) return
+
+    val panelSeed = (seedX * 104729) xor (seedY * 224737)
+    val random = java.util.Random(panelSeed.toLong())
+
+    // helper projection function
+    fun getPt(u: Float, v: Float): Offset {
+        val px = x1 + (x2 - x1) * u
+        val yT = yTop1 + (yTop2 - yTop1) * u
+        val yB = yBot1 + (yBot2 - yBot1) * u
+        return Offset(px, yT + (yB - yT) * v)
     }
-    
-    // Perspective vertical running-bond joints
-    val cols = 4
-    for (i in 0 until rows) {
-        val t1 = i.toFloat() / rows
-        val t2 = (i + 1).toFloat() / rows
-        val shift = if (i % 2 == 0) 0f else 0.5f
-        for (j in 1..cols) {
-            val u = (j.toFloat() - 0.5f + shift) / (cols + 0.5f)
-            if (u in 0.01f..0.99f) {
-                val xVal = x1 + (x2 - x1) * u
-                val yTopVal = yTop1 + (yTop2 - yTop1) * u
-                val yBotVal = yBot1 + (yBot2 - yBot1) * u
+
+    // Shading multiplier helper to shadow decorative assets
+    fun shadeCol(base: Color): Color {
+        return lerpColor(Color.Black, base, shade)
+    }
+
+    // Determine school theme
+    // .05 lockers (5%)
+    // .05 bulletin board (5%)
+    // .10 dirty tiles (10%)
+    // .50 cracked plaster images (cracked/peeling plaster) (50%)
+    // Remaining .30 standard brick panels
+    val rollStyle = random.nextFloat()
+    val theme = when {
+        rollStyle < 0.05f -> "lockers"
+        rollStyle < 0.10f -> "bulletin"
+        rollStyle < 0.20f -> "tiles"
+        rollStyle < 0.70f -> "cracked"
+        else -> "standard"
+    }
+
+    val hasWaterDamage = random.nextFloat() < 0.20f // .10 & .10 mentioned twice -> 20%
+    val hasGraffiti = random.nextFloat() < 0.13f // .10 & .03 mentioned -> 13%
+
+    // Base background wall fill has already been colored by drawPolygon, but we can draw custom patterns on top!
+    when (theme) {
+        "lockers" -> {
+            // Draw adjacent steel lockers
+            val doorCount = 3
+            for (col in 0 until doorCount) {
+                val dL = 0.05f + col * 0.31f
+                val dR = dL + 0.28f
                 
-                val yStart = yTopVal + (yBotVal - yTopVal) * t1
-                val yEnd = yTopVal + (yBotVal - yTopVal) * t2
+                // Draw locker door background filling
+                val path = Path().apply {
+                    val pTL = getPt(dL, 0.08f)
+                    val pTR = getPt(dR, 0.08f)
+                    val pBR = getPt(dR, 0.92f)
+                    val pBL = getPt(dL, 0.92f)
+                    moveTo(pTL.x, pTL.y)
+                    lineTo(pTR.x, pTR.y)
+                    lineTo(pBR.x, pBR.y)
+                    lineTo(pBL.x, pBL.y)
+                    close()
+                }
+                // Distressed school locker slate grey/blue or dark olive/green
+                val lockerBase = if (col % 2 == 0) Color(0xFF455A64) else Color(0xFF37474F)
+                drawPath(path = path, color = shadeCol(lockerBase))
                 
+                // Draw individual locker door outline
+                val points = listOf(getPt(dL, 0.08f), getPt(dR, 0.08f), getPt(dR, 0.92f), getPt(dL, 0.92f))
+                for (idx in 0 until 4) {
+                    val pA = points[idx]
+                    val pB = points[(idx + 1) % 4]
+                    drawLine(color = Color.Black.copy(alpha = 0.8f), start = pA, end = pB, strokeWidth = 1.5f)
+                }
+
+                // Vertical locker door center crease line
                 drawLine(
-                    color = color,
-                    start = Offset(xVal, yStart),
-                    end = Offset(xVal, yEnd),
-                    strokeWidth = 1.8f
+                    color = Color.Black.copy(alpha = 0.3f),
+                    start = getPt((dL + dR) / 2f, 0.08f),
+                    end = getPt((dL + dR) / 2f, 0.92f),
+                    strokeWidth = 1f
                 )
 
-                if ((i + j) % 3 == 1) {
-                    val midY = (yStart + yEnd) / 2
-                    drawCircle(
-                        color = color.copy(alpha = 0.22f),
-                        radius = 3f,
-                        center = Offset(xVal, midY)
+                // Top Louvers
+                val midU = (dL + dR) / 2f
+                val lW = 0.08f
+                for (l in 0..3) {
+                    val lvY = 0.14f + l * 0.03f
+                    drawLine(
+                        color = Color.Black.copy(alpha = 0.85f),
+                        start = getPt(midU - lW, lvY),
+                        end = getPt(midU + lW, lvY),
+                        strokeWidth = 1.6f
                     )
                 }
+
+                // Bottom Louvers
+                for (l in 0..3) {
+                    val lvY = 0.76f + l * 0.03f
+                    drawLine(
+                        color = Color.Black.copy(alpha = 0.85f),
+                        start = getPt(midU - lW, lvY),
+                        end = getPt(midU + lW, lvY),
+                        strokeWidth = 1.6f
+                    )
+                }
+
+                // Locker lock pocket handle well
+                val hL = dL + 0.04f
+                val hR = dL + 0.09f
+                val hT = 0.45f
+                val hB = 0.53f
+                val handlePath = Path().apply {
+                    moveTo(getPt(hL, hT).x, getPt(hL, hT).y)
+                    lineTo(getPt(hR, hT).x, getPt(hR, hT).y)
+                    lineTo(getPt(hR, hB).x, getPt(hR, hB).y)
+                    lineTo(getPt(hL, hB).x, getPt(hL, hB).y)
+                    close()
+                }
+                drawPath(path = handlePath, color = shadeCol(Color(0xFF212121))) // Black recess
+
+                // Tiny silver lever
+                drawLine(
+                    color = shadeCol(Color(0xFFB0BEC5)),
+                    start = getPt(hL + 0.015f, hT + 0.02f),
+                    end = getPt(hL + 0.015f, hB - 0.02f),
+                    strokeWidth = 2.5f
+                )
+
+                // Hanging combination lock body
+                val shackleCX = (hL + hR)/2f
+                val lockCY = hB + 0.03f
+                // Padlock ring
+                drawCircle(
+                    color = shadeCol(Color(0xFFD4AF37)), // Brass
+                    radius = (h1 * 0.012f).coerceAtLeast(1.5f),
+                    center = getPt(shackleCX, hB + 0.005f),
+                    style = Stroke(width = 1.2f)
+                )
+                // Black dial lock body
+                drawCircle(
+                    color = shadeCol(Color(0xFF1A1A1A)),
+                    radius = (h1 * 0.018f).coerceAtLeast(2.5f),
+                    center = getPt(shackleCX, lockCY)
+                )
+            }
+        }
+        "bulletin" -> {
+            // Draw a cork board with papers pinned onto it
+            val bL = 0.15f; val bR = 0.85f
+            val bT = 0.18f; val bB = 0.68f
+
+            // Corkboard back fill
+            val corkPath = Path().apply {
+                moveTo(getPt(bL, bT).x, getPt(bL, bT).y)
+                lineTo(getPt(bR, bT).x, getPt(bR, bT).y)
+                lineTo(getPt(bR, bB).x, getPt(bR, bB).y)
+                lineTo(getPt(bL, bB).x, getPt(bL, bB).y)
+                close()
+            }
+            drawPath(path = corkPath, color = shadeCol(Color(0xFF8D6E63))) // Cork board brown
+
+            // Scattered tiny cork grain spec dots
+            for (g in 0..12) {
+                val gU = bL + random.nextFloat() * (bR - bL)
+                val gV = bT + random.nextFloat() * (bB - bT)
+                drawCircle(
+                    color = Color.Black.copy(alpha = 0.22f),
+                    radius = 1.2f,
+                    center = getPt(gU, gV)
+                )
+            }
+
+            // High-contrast corkboard woody outer border frame
+            val pts = listOf(getPt(bL, bT), getPt(bR, bT), getPt(bR, bB), getPt(bL, bB))
+            for (idx in 0 until 4) {
+                drawLine(
+                    color = shadeCol(Color(0xFF3E2723)), // Wood brown
+                    start = pts[idx],
+                    end = pts[(idx + 1) % 4],
+                    strokeWidth = 4f
+                )
+            }
+
+            // Draw loose pinned papers
+            // Paper 1
+            val p1Corners = listOf(
+                getPt(0.22f, 0.28f), getPt(0.38f, 0.30f),
+                getPt(0.36f, 0.52f), getPt(0.20f, 0.48f)
+            )
+            val p1Path = Path().apply {
+                moveTo(p1Corners[0].x, p1Corners[0].y)
+                p1Corners.forEach { lineTo(it.x, it.y) }
+                close()
+            }
+            drawPath(path = p1Path, color = shadeCol(Color(0xFFECEFF1))) // White ivory sheet
+            p1Corners.indices.forEach { idx ->
+                drawLine(color = Color.Black.copy(alpha = 0.25f), start = p1Corners[idx], end = p1Corners[(idx + 1) % 4], strokeWidth = 1f)
+            }
+            // Scribble math equations on paper 1
+            for (sc in 0..2) {
+                val sY = 0.34f + sc * 0.05f
+                drawLine(
+                    color = Color.Black.copy(alpha = 0.35f),
+                    start = getPt(0.24f, sY),
+                    end = getPt(0.34f, sY + 0.01f),
+                    strokeWidth = 1f
+                )
+            }
+
+            // Paper 2
+            val p2Corners = listOf(
+                getPt(0.44f, 0.35f), getPt(0.56f, 0.32f),
+                getPt(0.58f, 0.54f), getPt(0.46f, 0.57f)
+            )
+            val p2Path = Path().apply {
+                moveTo(p2Corners[0].x, p2Corners[0].y)
+                p2Corners.forEach { lineTo(it.x, it.y) }
+                close()
+            }
+            drawPath(path = p2Path, color = shadeCol(Color(0xFFFFF9C4))) // Soft yellow notebook note
+            p2Corners.indices.forEach { idx ->
+                drawLine(color = Color.Black.copy(alpha = 0.25f), start = p2Corners[idx], end = p2Corners[(idx + 1) % 4], strokeWidth = 1f)
+            }
+
+            // Pinned pushpins red/blue
+            drawCircle(color = shadeCol(Color(0xFFD32F2F)), radius = 2.5f, center = getPt(0.30f, 0.29f)) // red pushpin on Paper 1
+            drawCircle(color = shadeCol(Color(0xFF1976D2)), radius = 2.5f, center = getPt(0.50f, 0.34f)) // blue pushpin on Paper 2
+        }
+        "tiles" -> {
+            // Institutional dirty corridor wall tiling
+            val rows = 8
+            val cols = 8
+            
+            // Fill background
+            val tileBackground = Path().apply {
+                moveTo(getPt(0f, 0.08f).x, getPt(0f, 0.08f).y)
+                lineTo(getPt(1f, 0.08f).x, getPt(1f, 0.08f).y)
+                lineTo(getPt(1f, 0.92f).x, getPt(1f, 0.92f).y)
+                lineTo(getPt(0f, 0.92f).x, getPt(0f, 0.92f).y)
+                close()
+            }
+            drawPath(path = tileBackground, color = shadeCol(Color(0xFF78909C)))
+
+            // Grimy grout lines
+            for (i in 1..rows) {
+                val v = 0.08f + (0.84f * i / rows)
+                drawLine(
+                    color = Color.Black.copy(alpha = 0.55f),
+                    start = getPt(0f, v),
+                    end = getPt(1f, v),
+                    strokeWidth = 1.5f
+                )
+            }
+            for (j in 1 until cols) {
+                val u = j.toFloat() / cols
+                drawLine(
+                    color = Color.Black.copy(alpha = 0.55f),
+                    start = getPt(u, 0.08f),
+                    end = getPt(u, 0.92f),
+                    strokeWidth = 1.5f
+                )
+            }
+
+            // Grout stains and mold drips
+            for (st in 0..5) {
+                val uStain = (st + 1) * 0.15f
+                val vStain = 0.25f + (st * 11 % 100) / 250f
+                drawLine(
+                    color = Color(0x66263238),
+                    start = getPt(uStain, vStain),
+                    end = getPt(uStain, vStain + 0.18f),
+                    strokeWidth = 2.5f
+                )
+            }
+        }
+        "cracked" -> {
+            // Draw peeling plaster revealing background bricks + jagged masonry cracks!
+            drawSchoolGridBricks(color.copy(alpha = 0.25f), h1, h2, ::getPt, random)
+
+            // Let's draw 2 large chipped/peeled plaster holes revealing dark raw brick masonry backing
+            val peeledChippings = listOf(
+                // Shape 1 (Left hole)
+                listOf(getPt(0.12f, 0.18f), getPt(0.35f, 0.15f), getPt(0.38f, 0.38f), getPt(0.15f, 0.42f)),
+                // Shape 2 (Right hole)
+                listOf(getPt(0.58f, 0.24f), getPt(0.85f, 0.20f), getPt(0.80f, 0.54f), getPt(0.60f, 0.48f))
+            )
+
+            for (chip in peeledChippings) {
+                val path = Path().apply {
+                    moveTo(chip[0].x, chip[0].y)
+                    chip.forEach { lineTo(it.x, it.y) }
+                    close()
+                }
+                // Fill behind chipped plaster with dark charcoal raw stone color
+                drawPath(path = path, color = shadeCol(Color(0xFF263238)))
+                
+                // Draw plaster crumbling bezel border
+                for (idx in chip.indices) {
+                    drawLine(
+                        color = shadeCol(Color(0xFFECEFF1)).copy(alpha = 0.75f),
+                        start = chip[idx],
+                        end = chip[(idx + 1) % chip.size],
+                        strokeWidth = 1.8f
+                    )
+                }
+            }
+
+            // Jagged, branching line cracks running down the wall face
+            // Crack 1
+            drawLine(shadeCol(Color.Black), getPt(0.38f, 0.38f), getPt(0.44f, 0.58f), 1.5f)
+            drawLine(shadeCol(Color.Black), getPt(0.44f, 0.58f), getPt(0.40f, 0.74f), 1.2f)
+            
+            // Crack 2
+            drawLine(shadeCol(Color.Black), getPt(0.60f, 0.48f), getPt(0.52f, 0.65f), 1.5f)
+            drawLine(shadeCol(Color.Black), getPt(0.52f, 0.65f), getPt(0.58f, 0.82f), 1.2f)
+        }
+        else -> {
+            drawSchoolGridBricks(color.copy(alpha = 0.32f), h1, h2, ::getPt, random)
+        }
+    }
+
+    // --- OVERLAY 1: WATER DAMAGE (Leaking stains, 20% total probability) ---
+    if (hasWaterDamage) {
+        val leaksCount = 4 + random.nextInt(4)
+        for (i in 0 until leaksCount) {
+            val uLeak = 0.1f + random.nextFloat() * 0.8f
+            val maxV = 0.2f + random.nextFloat() * 0.5f
+            
+            var curU = uLeak
+            var curV = 0.08f
+            while (curV < maxV) {
+                val nextV = curV + 0.06f
+                val nextU = curU + (random.nextFloat() - 0.5f) * 0.02f
+                
+                drawLine(
+                    color = Color(0x772D1E12), // Dark dirty water staining brown
+                    start = getPt(curU, curV),
+                    end = getPt(nextU, nextV),
+                    strokeWidth = 2.5f
+                )
+                curU = nextU
+                curV = nextV
+            }
+        }
+
+        // Wet dripping ceiling smudge across the top wall joint
+        val waterSmudge = Path().apply {
+            moveTo(getPt(0f, 0.08f).x, getPt(0f, 0.08f).y)
+            lineTo(getPt(1f, 0.08f).x, getPt(1f, 0.08f).y)
+            lineTo(getPt(1f, 0.18f).x, getPt(1f, 0.18f).y)
+            lineTo(getPt(0.7f, 0.14f).x, getPt(0.7f, 0.14f).y)
+            lineTo(getPt(0.4f, 0.20f).x, getPt(0.4f, 0.20f).y)
+            lineTo(getPt(0f, 0.14f).x, getPt(0f, 0.14f).y)
+            close()
+        }
+        drawPath(path = waterSmudge, color = Color(0x553E2723))
+    }
+
+    // --- OVERLAY 2: CREEPY SCHOOLYARD GRAFFITI (13% probability: .10 + .03 config) ---
+    if (hasGraffiti) {
+        val graffitiType = random.nextInt(4)
+        when (graffitiType) {
+            0 -> {
+                // RUN
+                drawGraffitiText("RUN", 0.38f, 0.35f, 0.07f, 0.14f, shadeCol(Color(0xFFD32F2F)), ::getPt)
+            }
+            1 -> {
+                // Scribbled child skeleton monster and creepy eye rings
+                val hCX = 0.5f; val hCY = 0.45f
+                val faceRad = h1 * 0.05f
+                
+                // Head outline
+                drawCircle(
+                    color = shadeCol(Color(0xDD212121)),
+                    radius = faceRad,
+                    center = getPt(hCX, hCY),
+                    style = Stroke(width = 1.8f)
+                )
+                // Scribbled wire rings representing intense school anxiety
+                for (rot in 0..10) {
+                    drawCircle(
+                        color = shadeCol(Color(0x77212121)),
+                        radius = faceRad * (1f + rot * 0.04f),
+                        center = getPt(hCX + (random.nextFloat() - 0.5f) * 0.03f, hCY + (random.nextFloat() - 0.5f) * 0.03f),
+                        style = Stroke(width = 1f)
+                    )
+                }
+                // Hollow black eye dots + red center pupil dots
+                drawCircle(color = shadeCol(Color.Black), radius = 3.5f, center = getPt(hCX - 0.03f, hCY - 0.01f))
+                drawCircle(color = shadeCol(Color.Black), radius = 3.5f, center = getPt(hCX + 0.03f, hCY - 0.01f))
+                drawCircle(color = Color(0xFFFF5252), radius = 1.2f, center = getPt(hCX - 0.03f, hCY - 0.01f))
+                drawCircle(color = Color(0xFFFF5252), radius = 1.2f, center = getPt(hCX + 0.03f, hCY - 0.01f))
+                
+                // Jagged skeletal teeth mouth line
+                drawLine(color = shadeCol(Color.Black), start = getPt(hCX - 0.04f, hCY + 0.025f), end = getPt(hCX + 0.04f, hCY + 0.025f), strokeWidth = 1.5f)
+            }
+            2 -> {
+                // LOSER
+                drawGraffitiText("LOSER", 0.32f, 0.42f, 0.06f, 0.12f, shadeCol(Color(0xFF2E3D30)), ::getPt)
+            }
+            else -> {
+                val bX = 0.45f
+                val bY = 0.38f
+                val sH = 0.16f
+                // Spinal bones
+                drawLine(shadeCol(Color.Black), getPt(bX, bY), getPt(bX, bY + sH), 1.8f)
+                // Head
+                drawCircle(shadeCol(Color.Black), radius = 6f, center = getPt(bX, bY - 0.02f), style = Stroke(width = 1.5f))
+                // Arms
+                drawLine(shadeCol(Color.Black), getPt(bX - 0.08f, bY + 0.04f), getPt(bX + 0.08f, bY + 0.04f), 1.5f)
+                // Legs
+                drawLine(shadeCol(Color.Black), getPt(bX, bY + sH), getPt(bX - 0.05f, bY + sH + 0.10f), 1.5f)
+                drawLine(shadeCol(Color.Black), getPt(bX, bY + sH), getPt(bX + 0.05f, bY + sH + 0.10f), 1.5f)
             }
         }
     }
 
-    // Perspective baseboard at the bottom of side wall
-    val bbT = 0.08f // baseboard height percentage
-    val yBB1 = yBot1 - (yBot1 - yTop1) * bbT
-    val yBB2 = yBot2 - (yBot2 - yTop2) * bbT
+    // --- BASEBOARD: SCHOOL LOCKER ROOM DARK RUBBER BASEBOARD (Always present at bottom) ---
+    val bbT = 0.08f // Baseboard occupies the bottom 8% of the panel
     val baseboardPath = Path().apply {
-        moveTo(x1, yBot1)
-        lineTo(x2, yBot2)
-        lineTo(x2, yBB2)
-        lineTo(x1, yBB1)
+        moveTo(getPt(0f, 1f - bbT).x, getPt(0f, 1f - bbT).y)
+        lineTo(getPt(1f, 1f - bbT).x, getPt(1f, 1f - bbT).y)
+        lineTo(getPt(1f, 1f).x, getPt(1f, 1f).y)
+        lineTo(getPt(0f, 1f).x, getPt(0f, 1f).y)
         close()
     }
     drawPath(
         path = baseboardPath,
-        color = Color(0xFF3E2723) // Rich baseboard brown
+        color = shadeCol(Color(0xFF3E2723)) // High quality school wood/rubber baseboard
     )
     drawLine(
-        color = Color.Black,
-        start = Offset(x1, yBB1),
-        end = Offset(x2, yBB2),
+        color = Color.Black.copy(alpha = 0.9f),
+        start = getPt(0f, 1f - bbT),
+        end = getPt(1f, 1f - bbT),
         strokeWidth = 1.5f
     )
+}
+
+// Helper block texturing method
+private fun DrawScope.drawSchoolGridBricks(
+    color: Color,
+    h1: Float,
+    h2: Float,
+    getPt: (Float, Float) -> Offset,
+    random: java.util.Random
+) {
+    val rows = 5
+    val cols = 5
+    
+    // Draw horizontal grout lines
+    for (i in 1 until rows) {
+        val v = 0.08f + (0.84f * i / rows)
+        drawLine(
+            color = color,
+            start = getPt(0f, v),
+            end = getPt(1f, v),
+            strokeWidth = 2f
+        )
+    }
+    
+    // Vertical mortar running bond pattern
+    for (i in 0 until rows) {
+        val v1 = 0.08f + (0.84f * i / rows)
+        val v2 = 0.08f + (0.84f * (i + 1) / rows)
+        val shift = if (i % 2 == 0) 0f else 0.5f
+        for (j in 0..cols) {
+            val fraction = (j.toFloat() - 0.5f + shift) / cols
+            if (fraction in 0.01f..0.99f) {
+                drawLine(
+                    color = color,
+                    start = getPt(fraction, v1),
+                    end = getPt(fraction, v2),
+                    strokeWidth = 1.8f
+                )
+            }
+            
+            val cellFractionStart = (j.toFloat() - 1f + shift).coerceAtLeast(0f) / cols
+            val cellFractionEnd = (j.toFloat() + shift).coerceAtMost(cols.toFloat()) / cols
+            val cellCenterX = (cellFractionStart + cellFractionEnd) / 2
+            val cellCenterY = (v1 + v2) / 2
+            
+            // Draw some tiny texture spots on the brick blocks
+            if ((i + j) % 3 == 0) {
+                drawCircle(
+                    color = color.copy(alpha = 0.20f),
+                    radius = ((v2 - v1) * h1 * 0.12f).coerceAtMost(5f).coerceAtLeast(1f),
+                    center = getPt(cellCenterX, cellCenterY)
+                )
+            }
+        }
+    }
+}
+
+// Letter renderer for school graffiti
+private fun DrawScope.drawGraffitiText(
+    word: String,
+    uStart: Float,
+    vStart: Float,
+    charW: Float,
+    charH: Float,
+    color: Color,
+    getPt: (Float, Float) -> Offset
+) {
+    var curU = uStart
+    for (char in word) {
+        when (char) {
+            'R' -> {
+                drawLine(color, getPt(curU, vStart), getPt(curU, vStart + charH), 2.2f)
+                drawLine(color, getPt(curU, vStart), getPt(curU + charW, vStart), 2.2f)
+                drawLine(color, getPt(curU + charW, vStart), getPt(curU + charW, vStart + charH * 0.5f), 2.2f)
+                drawLine(color, getPt(curU, vStart + charH * 0.5f), getPt(curU + charW, vStart + charH * 0.5f), 2.2f)
+                drawLine(color, getPt(curU + charW * 0.2f, vStart + charH * 0.5f), getPt(curU + charW, vStart + charH), 2.2f)
+            }
+            'U' -> {
+                drawLine(color, getPt(curU, vStart), getPt(curU, vStart + charH), 2.2f)
+                drawLine(color, getPt(curU + charW, vStart), getPt(curU + charW, vStart + charH), 2.2f)
+                drawLine(color, getPt(curU, vStart + charH), getPt(curU + charW, vStart + charH), 2.2f)
+            }
+            'N' -> {
+                drawLine(color, getPt(curU, vStart), getPt(curU, vStart + charH), 2.2f)
+                drawLine(color, getPt(curU, vStart), getPt(curU + charW, vStart + charH), 2.2f)
+                drawLine(color, getPt(curU + charW, vStart), getPt(curU + charW, vStart + charH), 2.2f)
+            }
+            'L' -> {
+                drawLine(color, getPt(curU, vStart), getPt(curU, vStart + charH), 2.2f)
+                drawLine(color, getPt(curU, vStart + charH), getPt(curU + charW, vStart + charH), 2.2f)
+            }
+            'O' -> {
+                drawLine(color, getPt(curU, vStart), getPt(curU + charW, vStart), 2.2f)
+                drawLine(color, getPt(curU, vStart + charH), getPt(curU + charW, vStart + charH), 2.2f)
+                drawLine(color, getPt(curU, vStart), getPt(curU, vStart + charH), 2.2f)
+                drawLine(color, getPt(curU + charW, vStart), getPt(curU + charW, vStart + charH), 2.2f)
+            }
+            'S' -> {
+                drawLine(color, getPt(curU, vStart), getPt(curU + charW, vStart), 2.2f)
+                drawLine(color, getPt(curU, vStart), getPt(curU, vStart + charH * 0.5f), 2.2f)
+                drawLine(color, getPt(curU, vStart + charH * 0.5f), getPt(curU + charW, vStart + charH * 0.5f), 2.2f)
+                drawLine(color, getPt(curU + charW, vStart + charH * 0.5f), getPt(curU + charW, vStart + charH), 2.2f)
+                drawLine(color, getPt(curU, vStart + charH), getPt(curU + charW, vStart + charH), 2.2f)
+            }
+            'E' -> {
+                drawLine(color, getPt(curU, vStart), getPt(curU, vStart + charH), 2.2f)
+                drawLine(color, getPt(curU, vStart), getPt(curU + charW, vStart), 2.2f)
+                drawLine(color, getPt(curU, vStart + charH * 0.5f), getPt(curU + charW * 0.7f, vStart + charH * 0.5f), 2.2f)
+                drawLine(color, getPt(curU, vStart + charH), getPt(curU + charW, vStart + charH), 2.2f)
+            }
+        }
+        curU += charW + 0.02f
+    }
 }
 
 // Custom 3D perspective floor/ceiling pavement tile helper

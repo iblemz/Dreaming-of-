@@ -528,8 +528,10 @@ fun CombatScreen(
                                                 .clip(RoundedCornerShape(6.dp))
                                                 .background(Color.White.copy(alpha = 0.08f))
                                                 .clickable {
-                                                    viewModel.useConsumable(item)
-                                                    viewModel.combatSubMenu = "MAIN"
+                                                    if (viewModel.isPlayerTurn) {
+                                                        viewModel.useConsumable(item)
+                                                        viewModel.combatSubMenu = "MAIN"
+                                                    }
                                                 }
                                                 .padding(horizontal = 8.dp, vertical = 6.dp),
                                             horizontalArrangement = Arrangement.SpaceBetween,

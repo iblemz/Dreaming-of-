@@ -597,35 +597,52 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     fun useConsumable(item: LootItem) {
         if (item.type != ItemType.CONSUMABLE) return
 
+        if (screenState == ScreenState.COMBAT && !isPlayerTurn) return
+
         if (item.count > 1) {
             item.count--
         } else {
             inventory.remove(item)
         }
 
+        var logText = ""
         when (item.id) {
             "milk" -> {
                 val valHeal = 45
                 playerHp = (playerHp + valHeal).coerceAtMost(playerTotalMaxHp())
                 nightmareIntensity = (nightmareIntensity - 0.10f).coerceAtLeast(0.0f)
-                showToast("Drank milk! HP increased by $valHeal, relaxed spirit.")
+                logText = "🥛 Drank milk! Healed $valHeal HP and calmed of secondary anxieties."
             }
             "cookie" -> {
                 val dpHeal = 15
                 playerDp = (playerDp + dpHeal).coerceAtMost(playerMaxDp)
-                showToast("Ate cookie! DP increased by $dpHeal.")
+                logText = "🍪 Ate a sweet cookie! Willpower (WP/DP) increased by $dpHeal."
             }
             "teddy_healing" -> {
                 playerHp = (playerHp + 100).coerceAtMost(playerTotalMaxHp())
                 nightmareIntensity = (nightmareIntensity - 0.35f).coerceAtLeast(0.0f)
-                showToast("You hugged the plush teddy! Mind calmed.")
+                logText = "🧸 You hugged the plush teddy! Intimate warmth restored 100 HP!"
             }
             "pills_sleep" -> {
                 playerHp = playerTotalMaxHp()
                 playerDp = playerMaxDp
                 nightmareIntensity = 0.0f
-                showToast("Perfect Sleep Gateway activated. Fully Cleansed!")
+                logText = "💊 Activated Perfect Sleep Gateway. Fully Restored Courage & Cleansed Stress!"
             }
+            else -> {
+                logText = "📦 Used ${item.name}."
+            }
+        }
+
+        if (screenState == ScreenState.COMBAT) {
+            combatLogs.add(logText)
+            isPlayerTurn = false
+            viewModelScope.launch {
+                kotlinx.coroutines.delay(1200)
+                executeEnemyTurn()
+            }
+        } else {
+            showToast(logText)
         }
         triggerAutoSave()
     }
