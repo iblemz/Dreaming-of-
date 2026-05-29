@@ -1,0 +1,6 @@
+{
+  "name": "Dream Crawler",
+  "description": "Retro styled first-person dungeon crawler procedurally generated in a child's toy nightmare.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

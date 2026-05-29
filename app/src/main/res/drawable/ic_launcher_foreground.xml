@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Outer starry neon glow circle -->
+    <path
+        android:pathData="M54,54m-40,0a40,40 0,1 1,80 0a40,40 0,1 1,-80 0"
+        android:strokeWidth="1.5"
+        android:strokeColor="#FF69B4"
+        android:fillColor="#00000000" />
+        
+    <!-- Tiny orbiting dream sparkle circles -->
+    <path
+        android:pathData="M34,26m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0"
+        android:fillColor="#00FFFF" />
+    <path
+        android:pathData="M78,74m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0"
+        android:fillColor="#00FFFF" />
+
+    <!-- Crescent Moon Path: Centered, yellow -->
+    <path
+        android:pathData="M52,38 C42,38 34,46 34,56 C34,66 42,74 52,74 C58,74 63,71 66,66 C59,68 50,65 47,58 C45,53 47,45 52,41 C50,39 51,38 52,38 Z"
+        android:fillColor="#FFD700" />
+
+    <!-- Sparkling 4-point star of bedtime courage -->
+    <path
+        android:pathData="M66,41 L68,46 L73,48 L68,50 L66,55 L64,50 L59,48 L64,46 Z"
+        android:fillColor="#FFFFFF" />
+
+    <!-- Cute protective teddy head outline silhouette -->
+    <path
+        android:pathData="M54,56 Q56,54 58,56 Q59,58 57,60 Q55,62 54,60 Q53,62 51,60 Q49,58 50,56 Q52,54 54,56 Z"
+        android:fillColor="#FFC0CB" />
+</vector>
