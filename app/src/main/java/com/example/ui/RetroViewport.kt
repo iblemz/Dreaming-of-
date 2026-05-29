@@ -53,9 +53,26 @@ fun RetroViewport(
     val resources = context.resources
     val packageName = context.packageName
 
-    // Preload textures dynamically if they ever exist in standard drawable resources
+    // Preload textures dynamically if they ever exist in standard assets or resource drawables
     val wallTextures = remember {
         fun loadTexture(name: String): androidx.compose.ui.graphics.ImageBitmap? {
+            // 1. Try to load directly from raw Android assets (app/src/main/assets) with clean formats
+            val assetManager = context.assets
+            val extensions = listOf("png", "jpg", "jpeg", "webp")
+            for (ext in extensions) {
+                try {
+                    val stream = assetManager.open("$name.$ext")
+                    val bitmap = android.graphics.BitmapFactory.decodeStream(stream)
+                    stream.close()
+                    if (bitmap != null) {
+                        return bitmap.asImageBitmap()
+                    }
+                } catch (e: Exception) {
+                    // Fall through to try next extension
+                }
+            }
+
+            // 2. Try to fall back to drawable resources if assets don't exist
             val resId = resources.getIdentifier(name, "drawable", packageName)
             if (resId == 0) return null
             return try {
