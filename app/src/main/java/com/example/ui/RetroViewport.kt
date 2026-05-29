@@ -15,6 +15,11 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.runtime.remember
 import com.example.data.model.*
 import com.example.game.DungeonGenerator
 import kotlin.math.cos
@@ -43,6 +48,35 @@ fun RetroViewport(
 ) {
     // Generate dynamic shifting theme colors based on nightmare intensity
     val colors = getDynamicColors(nightmareIntensity)
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val resources = context.resources
+    val packageName = context.packageName
+
+    // Preload textures dynamically if they ever exist in standard drawable resources
+    val wallTextures = remember {
+        fun loadTexture(name: String): androidx.compose.ui.graphics.ImageBitmap? {
+            val resId = resources.getIdentifier(name, "drawable", packageName)
+            if (resId == 0) return null
+            return try {
+                val bitmap = android.graphics.BitmapFactory.decodeResource(resources, resId)
+                if (bitmap != null) {
+                    bitmap.asImageBitmap()
+                } else null
+            } catch (e: Exception) {
+                null
+            }
+        }
+
+        mapOf(
+            "lockers" to loadTexture("wall_lockers"),
+            "bulletin" to loadTexture("wall_bulletin"),
+            "tiles" to loadTexture("wall_tiles"),
+            "cracked" to loadTexture("wall_cracked"),
+            "water" to loadTexture("wall_water"),
+            "graffiti" to loadTexture("wall_graffiti")
+        )
+    }
 
     Box(
         modifier = modifier
@@ -160,7 +194,8 @@ fun RetroViewport(
                         color = shadedOutline.copy(alpha = 0.4f),
                         cx = cx,
                         cy = cy,
-                        shade = shade
+                        shade = shade,
+                        textures = wallTextures
                     )
                     // Draw outline
                     drawRect(
@@ -224,7 +259,8 @@ fun RetroViewport(
                             x2 = b2.xL, yTop2 = b2.yT, yBot2 = b2.yB,
                             color = shadedOutline.copy(alpha = 0.4f),
                             seedX = lx, seedY = ly,
-                            shade = shade
+                            shade = shade,
+                            textures = wallTextures
                         )
                     } else {
                         // Drawing side corridor opening back walls to make maze exploration cohesive
@@ -258,7 +294,8 @@ fun RetroViewport(
                             x2 = b2.xR, yTop2 = b2.yT, yBot2 = b2.yB,
                             color = shadedOutline.copy(alpha = 0.4f),
                             seedX = rx, seedY = ry,
-                            shade = shade
+                            shade = shade,
+                            textures = wallTextures
                         )
                     } else {
                         drawPolygon(
@@ -962,7 +999,8 @@ private fun DrawScope.drawFrontWallBricks(
     color: Color,
     cx: Int,
     cy: Int,
-    shade: Float
+    shade: Float,
+    textures: Map<String, androidx.compose.ui.graphics.ImageBitmap?>
 ) {
     drawProceduralSchoolWallPanel(
         x1 = xL, yTop1 = yT, yBot1 = yB,
@@ -970,7 +1008,8 @@ private fun DrawScope.drawFrontWallBricks(
         color = color,
         seedX = cx,
         seedY = cy,
-        shade = shade
+        shade = shade,
+        textures = textures
     )
 }
 
@@ -985,7 +1024,8 @@ private fun DrawScope.drawPerspectiveWallBricks(
     color: Color,
     seedX: Int,
     seedY: Int,
-    shade: Float
+    shade: Float,
+    textures: Map<String, androidx.compose.ui.graphics.ImageBitmap?>
 ) {
     drawProceduralSchoolWallPanel(
         x1 = x1, yTop1 = yTop1, yBot1 = yBot1,
@@ -993,7 +1033,8 @@ private fun DrawScope.drawPerspectiveWallBricks(
         color = color,
         seedX = seedX,
         seedY = seedY,
-        shade = shade
+        shade = shade,
+        textures = textures
     )
 }
 
@@ -1004,7 +1045,8 @@ private fun DrawScope.drawProceduralSchoolWallPanel(
     color: Color, // shadedOutline color
     seedX: Int,
     seedY: Int,
-    shade: Float
+    shade: Float,
+    textures: Map<String, androidx.compose.ui.graphics.ImageBitmap?>
 ) {
     val h1 = yBot1 - yTop1
     val h2 = yBot2 - yTop2
@@ -1045,7 +1087,61 @@ private fun DrawScope.drawProceduralSchoolWallPanel(
     val hasGraffiti = random.nextFloat() < 0.13f // .10 & .03 mentioned -> 13%
 
     // Base background wall fill has already been colored by drawPolygon, but we can draw custom patterns on top!
-    when (theme) {
+    var customTextureDrawn = false
+    val customBitmap = textures[theme]
+    if (customBitmap != null) {
+        drawIntoCanvas { canvas ->
+            try {
+                val nativeCanvas = canvas.nativeCanvas
+                nativeCanvas.save()
+                
+                val bmpW = customBitmap.width.toFloat()
+                val bmpH = customBitmap.height.toFloat()
+                val srcPts = floatArrayOf(
+                    0f, 0f,
+                    bmpW, 0f,
+                    bmpW, bmpH,
+                    0f, bmpH
+                )
+                
+                val p1 = getPt(0f, 0.08f)
+                val p2 = getPt(1f, 0.08f)
+                val p3 = getPt(1f, 0.92f)
+                val p4 = getPt(0f, 0.92f)
+                val dstPts = floatArrayOf(
+                    p1.x, p1.y,
+                    p2.x, p2.y,
+                    p3.x, p3.y,
+                    p4.x, p4.y
+                )
+                
+                val matrix = android.graphics.Matrix()
+                matrix.setPolyToPoly(srcPts, 0, dstPts, 0, 4)
+                nativeCanvas.concat(matrix)
+                
+                val nativeBmp = customBitmap.asAndroidBitmap()
+                val paint = android.graphics.Paint().apply {
+                    isFilterBitmap = true
+                    isAntiAlias = true
+                    // Light shade: darken wall based on depth (shade: 0..1)
+                    val alphaShadow = ((1f - shade) * 255).toInt().coerceIn(0, 255)
+                    colorFilter = android.graphics.PorterDuffColorFilter(
+                        android.graphics.Color.argb(alphaShadow, 0, 0, 0),
+                        android.graphics.PorterDuff.Mode.SRC_ATOP
+                    )
+                }
+                
+                nativeCanvas.drawBitmap(nativeBmp, 0f, 0f, paint)
+                nativeCanvas.restore()
+                customTextureDrawn = true
+            } catch (e: Exception) {
+                // Return false to fallback
+            }
+        }
+    }
+
+    if (!customTextureDrawn) {
+        when (theme) {
         "lockers" -> {
             // Draw adjacent steel lockers
             val doorCount = 3
@@ -1323,99 +1419,172 @@ private fun DrawScope.drawProceduralSchoolWallPanel(
             drawSchoolGridBricks(color.copy(alpha = 0.32f), h1, h2, ::getPt, random)
         }
     }
+    }
 
     // --- OVERLAY 1: WATER DAMAGE (Leaking stains, 20% total probability) ---
     if (hasWaterDamage) {
-        val leaksCount = 4 + random.nextInt(4)
-        for (i in 0 until leaksCount) {
-            val uLeak = 0.1f + random.nextFloat() * 0.8f
-            val maxV = 0.2f + random.nextFloat() * 0.5f
-            
-            var curU = uLeak
-            var curV = 0.08f
-            while (curV < maxV) {
-                val nextV = curV + 0.06f
-                val nextU = curU + (random.nextFloat() - 0.5f) * 0.02f
-                
-                drawLine(
-                    color = Color(0x772D1E12), // Dark dirty water staining brown
-                    start = getPt(curU, curV),
-                    end = getPt(nextU, nextV),
-                    strokeWidth = 2.5f
-                )
-                curU = nextU
-                curV = nextV
+        val waterBmp = textures["water"]
+        var waterDrawn = false
+        if (waterBmp != null) {
+            drawIntoCanvas { canvas ->
+                try {
+                    val nativeCanvas = canvas.nativeCanvas
+                    nativeCanvas.save()
+                    val bmpW = waterBmp.width.toFloat()
+                    val bmpH = waterBmp.height.toFloat()
+                    val srcPts = floatArrayOf(0f, 0f, bmpW, 0f, bmpW, bmpH, 0f, bmpH)
+                    val p1 = getPt(0f, 0.08f)
+                    val p2 = getPt(1f, 0.08f)
+                    val p3 = getPt(1f, 0.92f)
+                    val p4 = getPt(0f, 0.92f)
+                    val dstPts = floatArrayOf(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, p4.x, p4.y)
+                    val matrix = android.graphics.Matrix()
+                    matrix.setPolyToPoly(srcPts, 0, dstPts, 0, 4)
+                    nativeCanvas.concat(matrix)
+                    val nativeBmp = waterBmp.asAndroidBitmap()
+                    val paint = android.graphics.Paint().apply {
+                        isFilterBitmap = true
+                        isAntiAlias = true
+                        val alphaShadow = ((1f - shade) * 255).toInt().coerceIn(0, 255)
+                        colorFilter = android.graphics.PorterDuffColorFilter(
+                            android.graphics.Color.argb(alphaShadow, 0, 0, 0),
+                            android.graphics.PorterDuff.Mode.SRC_ATOP
+                        )
+                    }
+                    nativeCanvas.drawBitmap(nativeBmp, 0f, 0f, paint)
+                    nativeCanvas.restore()
+                    waterDrawn = true
+                } catch (e: Exception) {}
             }
         }
+        if (!waterDrawn) {
+            val leaksCount = 4 + random.nextInt(4)
+            for (i in 0 until leaksCount) {
+                val uLeak = 0.1f + random.nextFloat() * 0.8f
+                val maxV = 0.2f + random.nextFloat() * 0.5f
+                
+                var curU = uLeak
+                var curV = 0.08f
+                while (curV < maxV) {
+                    val nextV = curV + 0.06f
+                    val nextU = curU + (random.nextFloat() - 0.5f) * 0.02f
+                    
+                    drawLine(
+                        color = Color(0x772D1E12), // Dark dirty water staining brown
+                        start = getPt(curU, curV),
+                        end = getPt(nextU, nextV),
+                        strokeWidth = 2.5f
+                    )
+                    curU = nextU
+                    curV = nextV
+                }
+            }
 
-        // Wet dripping ceiling smudge across the top wall joint
-        val waterSmudge = Path().apply {
-            moveTo(getPt(0f, 0.08f).x, getPt(0f, 0.08f).y)
-            lineTo(getPt(1f, 0.08f).x, getPt(1f, 0.08f).y)
-            lineTo(getPt(1f, 0.18f).x, getPt(1f, 0.18f).y)
-            lineTo(getPt(0.7f, 0.14f).x, getPt(0.7f, 0.14f).y)
-            lineTo(getPt(0.4f, 0.20f).x, getPt(0.4f, 0.20f).y)
-            lineTo(getPt(0f, 0.14f).x, getPt(0f, 0.14f).y)
-            close()
+            // Wet dripping ceiling smudge across the top wall joint
+            val waterSmudge = Path().apply {
+                moveTo(getPt(0f, 0.08f).x, getPt(0f, 0.08f).y)
+                lineTo(getPt(1f, 0.08f).x, getPt(1f, 0.08f).y)
+                lineTo(getPt(1f, 0.18f).x, getPt(1f, 0.18f).y)
+                lineTo(getPt(0.7f, 0.14f).x, getPt(0.7f, 0.14f).y)
+                lineTo(getPt(0.4f, 0.20f).x, getPt(0.4f, 0.20f).y)
+                lineTo(getPt(0f, 0.14f).x, getPt(0f, 0.14f).y)
+                close()
+            }
+            drawPath(path = waterSmudge, color = Color(0x553E2723))
         }
-        drawPath(path = waterSmudge, color = Color(0x553E2723))
     }
 
     // --- OVERLAY 2: CREEPY SCHOOLYARD GRAFFITI (13% probability: .10 + .03 config) ---
     if (hasGraffiti) {
-        val graffitiType = random.nextInt(4)
-        when (graffitiType) {
-            0 -> {
-                // RUN
-                drawGraffitiText("RUN", 0.38f, 0.35f, 0.07f, 0.14f, shadeCol(Color(0xFFD32F2F)), ::getPt)
+        val graffitiBmp = textures["graffiti"]
+        var graffitiDrawn = false
+        if (graffitiBmp != null) {
+            drawIntoCanvas { canvas ->
+                try {
+                    val nativeCanvas = canvas.nativeCanvas
+                    nativeCanvas.save()
+                    val bmpW = graffitiBmp.width.toFloat()
+                    val bmpH = graffitiBmp.height.toFloat()
+                    val srcPts = floatArrayOf(0f, 0f, bmpW, 0f, bmpW, bmpH, 0f, bmpH)
+                    val p1 = getPt(0f, 0.08f)
+                    val p2 = getPt(1f, 0.08f)
+                    val p3 = getPt(1f, 0.92f)
+                    val p4 = getPt(0f, 0.92f)
+                    val dstPts = floatArrayOf(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, p4.x, p4.y)
+                    val matrix = android.graphics.Matrix()
+                    matrix.setPolyToPoly(srcPts, 0, dstPts, 0, 4)
+                    nativeCanvas.concat(matrix)
+                    val nativeBmp = graffitiBmp.asAndroidBitmap()
+                    val paint = android.graphics.Paint().apply {
+                        isFilterBitmap = true
+                        isAntiAlias = true
+                        val alphaShadow = ((1f - shade) * 255).toInt().coerceIn(0, 255)
+                        colorFilter = android.graphics.PorterDuffColorFilter(
+                            android.graphics.Color.argb(alphaShadow, 0, 0, 0),
+                            android.graphics.PorterDuff.Mode.SRC_ATOP
+                        )
+                    }
+                    nativeCanvas.drawBitmap(nativeBmp, 0f, 0f, paint)
+                    nativeCanvas.restore()
+                    graffitiDrawn = true
+                } catch (e: Exception) {}
             }
-            1 -> {
-                // Scribbled child skeleton monster and creepy eye rings
-                val hCX = 0.5f; val hCY = 0.45f
-                val faceRad = h1 * 0.05f
-                
-                // Head outline
-                drawCircle(
-                    color = shadeCol(Color(0xDD212121)),
-                    radius = faceRad,
-                    center = getPt(hCX, hCY),
-                    style = Stroke(width = 1.8f)
-                )
-                // Scribbled wire rings representing intense school anxiety
-                for (rot in 0..10) {
-                    drawCircle(
-                        color = shadeCol(Color(0x77212121)),
-                        radius = faceRad * (1f + rot * 0.04f),
-                        center = getPt(hCX + (random.nextFloat() - 0.5f) * 0.03f, hCY + (random.nextFloat() - 0.5f) * 0.03f),
-                        style = Stroke(width = 1f)
-                    )
+        }
+        if (!graffitiDrawn) {
+            val graffitiType = random.nextInt(4)
+            when (graffitiType) {
+                0 -> {
+                    // RUN
+                    drawGraffitiText("RUN", 0.38f, 0.35f, 0.07f, 0.14f, shadeCol(Color(0xFFD32F2F)), ::getPt)
                 }
-                // Hollow black eye dots + red center pupil dots
-                drawCircle(color = shadeCol(Color.Black), radius = 3.5f, center = getPt(hCX - 0.03f, hCY - 0.01f))
-                drawCircle(color = shadeCol(Color.Black), radius = 3.5f, center = getPt(hCX + 0.03f, hCY - 0.01f))
-                drawCircle(color = Color(0xFFFF5252), radius = 1.2f, center = getPt(hCX - 0.03f, hCY - 0.01f))
-                drawCircle(color = Color(0xFFFF5252), radius = 1.2f, center = getPt(hCX + 0.03f, hCY - 0.01f))
-                
-                // Jagged skeletal teeth mouth line
-                drawLine(color = shadeCol(Color.Black), start = getPt(hCX - 0.04f, hCY + 0.025f), end = getPt(hCX + 0.04f, hCY + 0.025f), strokeWidth = 1.5f)
-            }
-            2 -> {
-                // LOSER
-                drawGraffitiText("LOSER", 0.32f, 0.42f, 0.06f, 0.12f, shadeCol(Color(0xFF2E3D30)), ::getPt)
-            }
-            else -> {
-                val bX = 0.45f
-                val bY = 0.38f
-                val sH = 0.16f
-                // Spinal bones
-                drawLine(shadeCol(Color.Black), getPt(bX, bY), getPt(bX, bY + sH), 1.8f)
-                // Head
-                drawCircle(shadeCol(Color.Black), radius = 6f, center = getPt(bX, bY - 0.02f), style = Stroke(width = 1.5f))
-                // Arms
-                drawLine(shadeCol(Color.Black), getPt(bX - 0.08f, bY + 0.04f), getPt(bX + 0.08f, bY + 0.04f), 1.5f)
-                // Legs
-                drawLine(shadeCol(Color.Black), getPt(bX, bY + sH), getPt(bX - 0.05f, bY + sH + 0.10f), 1.5f)
-                drawLine(shadeCol(Color.Black), getPt(bX, bY + sH), getPt(bX + 0.05f, bY + sH + 0.10f), 1.5f)
+                1 -> {
+                    // Scribbled child skeleton monster and creepy eye rings
+                    val hCX = 0.5f; val hCY = 0.45f
+                    val faceRad = h1 * 0.05f
+                    
+                    // Head outline
+                    drawCircle(
+                        color = shadeCol(Color(0xDD212121)),
+                        radius = faceRad,
+                        center = getPt(hCX, hCY),
+                        style = Stroke(width = 1.8f)
+                    )
+                    // Scribbled wire rings representing intense school anxiety
+                    for (rot in 0..10) {
+                        drawCircle(
+                            color = shadeCol(Color(0x77212121)),
+                            radius = faceRad * (1f + rot * 0.04f),
+                            center = getPt(hCX + (random.nextFloat() - 0.5f) * 0.03f, hCY + (random.nextFloat() - 0.5f) * 0.03f),
+                            style = Stroke(width = 1f)
+                        )
+                    }
+                    // Hollow black eye dots + red center pupil dots
+                    drawCircle(color = shadeCol(Color.Black), radius = 3.5f, center = getPt(hCX - 0.03f, hCY - 0.01f))
+                    drawCircle(color = shadeCol(Color.Black), radius = 3.5f, center = getPt(hCX + 0.03f, hCY - 0.01f))
+                    drawCircle(color = Color(0xFFFF5252), radius = 1.2f, center = getPt(hCX - 0.03f, hCY - 0.01f))
+                    drawCircle(color = Color(0xFFFF5252), radius = 1.2f, center = getPt(hCX + 0.03f, hCY - 0.01f))
+                    
+                    // Jagged skeletal teeth mouth line
+                    drawLine(color = shadeCol(Color.Black), start = getPt(hCX - 0.04f, hCY + 0.025f), end = getPt(hCX + 0.04f, hCY + 0.025f), strokeWidth = 1.5f)
+                }
+                2 -> {
+                    // LOSER
+                    drawGraffitiText("LOSER", 0.32f, 0.42f, 0.06f, 0.12f, shadeCol(Color(0xFF2E3D30)), ::getPt)
+                }
+                else -> {
+                    val bX = 0.45f
+                    val bY = 0.38f
+                    val sH = 0.16f
+                    // Spinal bones
+                    drawLine(shadeCol(Color.Black), getPt(bX, bY), getPt(bX, bY + sH), 1.8f)
+                    // Head
+                    drawCircle(shadeCol(Color.Black), radius = 6f, center = getPt(bX, bY - 0.02f), style = Stroke(width = 1.5f))
+                    // Arms
+                    drawLine(shadeCol(Color.Black), getPt(bX - 0.08f, bY + 0.04f), getPt(bX + 0.08f, bY + 0.04f), 1.5f)
+                    // Legs
+                    drawLine(shadeCol(Color.Black), getPt(bX, bY + sH), getPt(bX - 0.05f, bY + sH + 0.10f), 1.5f)
+                    drawLine(shadeCol(Color.Black), getPt(bX, bY + sH), getPt(bX + 0.05f, bY + sH + 0.10f), 1.5f)
+                }
             }
         }
     }
